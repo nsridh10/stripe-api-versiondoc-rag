@@ -1,18 +1,41 @@
-# src/export_db_to_json.py
+# src/test files/export_db_to_json.py
+"""
+Export ChromaDB contents to JSON for enrichment.
+
+This script exports all chunks from the ChromaDB vector store to a JSON file
+that can be processed by an LLM to add enrichment data (summaries, keywords,
+hypothetical questions).
+
+Usage:
+    cd /Users/navein/stripe-rag-agent
+    source venv/bin/activate
+    python -m src.test\ files.export_db_to_json
+
+Output:
+    Creates data/db_dump.json with all chunks and placeholder enrichment fields.
+"""
 import json
 import sys
 import os
 from pathlib import Path
 
 # Add project root to Python path
-project_root = Path(__file__).parent.parent
+# Note: This file is in src/test files/, so we need to go up 3 levels to project root
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import chromadb
 import chromadb.errors
 from src.config import config
 
+
 def export_db():
+    """
+    Exports ChromaDB collection contents to a JSON file.
+    
+    Creates a JSON file with all document chunks and placeholder fields
+    for enrichment data that can be filled in using an LLM.
+    """
     persist_dir = project_root / config["services"]["vector_db"]["persist_directory"]
     client = chromadb.PersistentClient(path=str(persist_dir))
     
@@ -55,6 +78,7 @@ def export_db():
         
     print(f"✅ Exported {total_chunks} chunks to '{output_path}'.")
     print("Take this file to your LLM UI, ask it to fill in the 'enriched_' fields, and save the result as 'data/enriched_db.json'.")
+
 
 if __name__ == "__main__":
     export_db()

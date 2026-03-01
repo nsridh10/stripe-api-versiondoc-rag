@@ -480,28 +480,46 @@ class SQLiteConversationMemory(ConversationMemory):
 # Factory Function
 # ---------------------------------------------------------------------------
 
+# Singleton cache for memory instances
+_memory_instances: Dict[str, "ConversationMemory"] = {}
+
 def get_conversation_memory(provider: str = "in-memory", **kwargs) -> ConversationMemory:
     """
     Factory function to get the configured conversation memory backend.
+    Returns a cached singleton instance for each provider configuration.
     
     Args:
         provider: "in-memory" or "sqlite"
         **kwargs: Provider-specific arguments (e.g., db_path for SQLite)
     
     Returns:
-        ConversationMemory instance
+        ConversationMemory instance (singleton per provider)
     """
     provider = provider.lower()
     
+    # Create a cache key based on provider and relevant kwargs
+    cache_key = provider
+    if provider == "sqlite":
+        cache_key = f"{provider}:{kwargs.get('db_path', 'data/conversation_memory.db')}"
+    
+    # Return cached instance if exists
+    if cache_key in _memory_instances:
+        return _memory_instances[cache_key]
+    
+    # Create new instance
     if provider == "in-memory":
-        return InMemoryConversationMemory()
+        instance = InMemoryConversationMemory()
     
     elif provider == "sqlite":
         db_path = kwargs.get("db_path", "data/conversation_memory.db")
-        return SQLiteConversationMemory(db_path=db_path)
+        instance = SQLiteConversationMemory(db_path=db_path)
     
     else:
         raise ValueError(
             f"Unsupported memory provider: {provider}. "
             f"Available: 'in-memory', 'sqlite'"
         )
+    
+    # Cache and return
+    _memory_instances[cache_key] = instance
+    return instance

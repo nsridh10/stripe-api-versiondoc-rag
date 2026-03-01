@@ -1,4 +1,11 @@
-# src/tools.py
+# src/tools/search.py
+"""
+Stripe API Documentation Search Tool.
+
+This tool provides semantic search capabilities over the Stripe API
+documentation vector store, with support for filtering by API class
+and version.
+"""
 from typing import Optional, List
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
@@ -8,6 +15,7 @@ from src.trace import get_trace
 
 
 class StripeAPISearchInput(BaseModel):
+    """Input schema for the Stripe API documentation search tool."""
     query: str = Field(
         description=(
             "The semantic search query. Be specific and use Stripe API terminology. "
@@ -211,7 +219,3 @@ def search_stripe_api_docs(
         )
 
     return "\n\n---\n\n".join(formatted_results)
-
-
-# Exported tool list consumed by the agent
-tools = [search_stripe_api_docs]

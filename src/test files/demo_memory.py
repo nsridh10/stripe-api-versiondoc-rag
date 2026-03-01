@@ -1,14 +1,29 @@
 #!/usr/bin/env python3
 """
 Demo script for conversation memory feature.
+
 Run this after starting the server to see multi-turn conversation in action.
+Tests automatic session management, follow-up detection, and clarification flows.
+
+Usage:
+    cd /Users/navein/stripe-rag-agent
+    source venv/bin/activate
+    # Start server first: uvicorn src.main:app --reload
+    python -m "src.test files.demo_memory"
 """
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 import requests
 import json
 import time
 
 API_URL = "http://localhost:8000"
+
 
 def test_conversation_memory():
     """Demonstrates multi-turn conversation with context."""
@@ -196,7 +211,7 @@ def test_version_comparison_followup():
 if __name__ == "__main__":
     try:
         # Check if server is running
-        requests.get(f"{API_URL}/")
+        requests.get(f"{API_URL}/", timeout=5)
         
         # Run demos
         test_conversation_memory()
@@ -208,3 +223,5 @@ if __name__ == "__main__":
         print("Start the server with: uvicorn src.main:app --reload")
     except Exception as e:
         print(f"ERROR: {e}")
+        import traceback
+        traceback.print_exc()
