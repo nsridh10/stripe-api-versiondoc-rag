@@ -66,6 +66,25 @@ class ConversationMemory(ABC):
         """Retrieve the active scope for a session."""
         pass
 
+    @abstractmethod
+    def list_sessions(self) -> List[Dict[str, Any]]:
+        """List all sessions with metadata, ordered by last_accessed descending."""
+        pass
+
+    @abstractmethod
+    def set_context_start(self, session_id: str, index: int) -> None:
+        """Set the message index where the current RAG context segment begins.
+        
+        When a new intent is detected, this is advanced so the agent only sees
+        messages from the current topic, while display endpoints return all messages.
+        """
+        pass
+
+    @abstractmethod
+    def get_context_start(self, session_id: str) -> int:
+        """Get the message index where the current RAG context segment begins."""
+        pass
+
 
 # ---------------------------------------------------------------------------
 # In-Memory Implementation
@@ -87,6 +106,7 @@ class InMemoryConversationMemory(ConversationMemory):
                 "messages": [],
                 "context": [],
                 "scope": None,
+                "context_start": 0,
                 "created_at": datetime.utcnow().isoformat(),
                 "last_accessed": datetime.utcnow().isoformat()
             }
@@ -114,6 +134,7 @@ class InMemoryConversationMemory(ConversationMemory):
             self._sessions[session_id]["messages"] = []
             self._sessions[session_id]["context"] = []
             self._sessions[session_id]["scope"] = None
+            self._sessions[session_id]["context_start"] = 0
             print(f"[Memory] Cleared session: {session_id}")
     
     def session_exists(self, session_id: str) -> bool:
@@ -128,7 +149,8 @@ class InMemoryConversationMemory(ConversationMemory):
             "session_id": session_id,
             "created_at": session["created_at"],
             "last_accessed": session["last_accessed"],
-            "message_count": len(session["messages"])
+            "message_count": len(session["messages"]),
+            "context_start": session.get("context_start", 0)
         }
 
     def set_context(self, session_id: str, context: List[Dict]) -> None:
@@ -150,6 +172,36 @@ class InMemoryConversationMemory(ConversationMemory):
         if not self.session_exists(session_id):
             return None
         return self._sessions[session_id].get("scope")
+
+    def list_sessions(self) -> List[Dict[str, Any]]:
+        sessions = []
+        for sid, data in self._sessions.items():
+            # Extract first user message as preview
+            first_user_msg = ""
+            for msg in data.get("messages", []):
+                if isinstance(msg, HumanMessage):
+                    first_user_msg = msg.content[:100]
+                    break
+            sessions.append({
+                "session_id": sid,
+                "created_at": data["created_at"],
+                "last_accessed": data["last_accessed"],
+                "message_count": len(data["messages"]),
+                "preview": first_user_msg
+            })
+        # Sort by last_accessed descending
+        sessions.sort(key=lambda x: x["last_accessed"], reverse=True)
+        return sessions
+
+    def set_context_start(self, session_id: str, index: int) -> None:
+        self.create_session(session_id)
+        self._sessions[session_id]["context_start"] = index
+        print(f"[Memory] Context start set to {index} for session {session_id}")
+
+    def get_context_start(self, session_id: str) -> int:
+        if not self.session_exists(session_id):
+            return 0
+        return self._sessions[session_id].get("context_start", 0)
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +251,11 @@ class SQLiteConversationMemory(ConversationMemory):
             # Safe migration: add scope_data column if it doesn't exist yet
             try:
                 conn.execute("ALTER TABLE sessions ADD COLUMN scope_data TEXT DEFAULT NULL")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+            # Safe migration: add context_start column if it doesn't exist yet
+            try:
+                conn.execute("ALTER TABLE sessions ADD COLUMN context_start INTEGER DEFAULT 0")
             except sqlite3.OperationalError:
                 pass  # Column already exists
             conn.commit()
@@ -275,6 +332,10 @@ class SQLiteConversationMemory(ConversationMemory):
     def clear_session(self, session_id: str) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+            conn.execute(
+                "UPDATE sessions SET context_start = 0, context_data = '[]', scope_data = NULL WHERE session_id = ?",
+                (session_id,)
+            )
             conn.commit()
         print(f"[Memory] Cleared session: {session_id}")
     
@@ -291,7 +352,7 @@ class SQLiteConversationMemory(ConversationMemory):
         
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT created_at, last_accessed FROM sessions WHERE session_id = ?",
+                "SELECT created_at, last_accessed, context_start FROM sessions WHERE session_id = ?",
                 (session_id,)
             )
             row = cursor.fetchone()
@@ -306,7 +367,8 @@ class SQLiteConversationMemory(ConversationMemory):
             "session_id": session_id,
             "created_at": row[0],
             "last_accessed": row[1],
-            "message_count": message_count
+            "message_count": message_count,
+            "context_start": row[2] if row[2] is not None else 0
         }
 
     def set_context(self, session_id: str, context: List[Dict]) -> None:
@@ -354,6 +416,64 @@ class SQLiteConversationMemory(ConversationMemory):
         if row and row[0]:
             return json.loads(row[0])
         return None
+
+    def list_sessions(self) -> List[Dict[str, Any]]:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT session_id, created_at, last_accessed FROM sessions ORDER BY last_accessed DESC"
+            )
+            rows = cursor.fetchall()
+
+        sessions = []
+        for sid, created_at, last_accessed in rows:
+            with sqlite3.connect(self.db_path) as conn:
+                count_cursor = conn.execute(
+                    "SELECT COUNT(*) FROM messages WHERE session_id = ?", (sid,)
+                )
+                message_count = count_cursor.fetchone()[0]
+                # Get first user message as preview
+                preview_cursor = conn.execute(
+                    "SELECT message_data FROM messages WHERE session_id = ? ORDER BY id ASC LIMIT 5",
+                    (sid,)
+                )
+                preview = ""
+                for (msg_data,) in preview_cursor.fetchall():
+                    msg_dict = json.loads(msg_data)
+                    if msg_dict.get("type") == "human":
+                        preview = msg_dict.get("data", {}).get("content", "")[:100]
+                        break
+
+            sessions.append({
+                "session_id": sid,
+                "created_at": created_at,
+                "last_accessed": last_accessed,
+                "message_count": message_count,
+                "preview": preview
+            })
+        return sessions
+
+    def set_context_start(self, session_id: str, index: int) -> None:
+        self.create_session(session_id)
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET context_start = ? WHERE session_id = ?",
+                (index, session_id)
+            )
+            conn.commit()
+        print(f"[Memory] Context start set to {index} for session {session_id}")
+
+    def get_context_start(self, session_id: str) -> int:
+        if not self.session_exists(session_id):
+            return 0
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT context_start FROM sessions WHERE session_id = ?",
+                (session_id,)
+            )
+            row = cursor.fetchone()
+        if row and row[0] is not None:
+            return row[0]
+        return 0
 
 
 # ---------------------------------------------------------------------------

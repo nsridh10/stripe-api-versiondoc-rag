@@ -11,7 +11,15 @@ sys.path.insert(0, str(project_root))
 import chromadb
 from langchain_core.documents import Document
 from src.dependencies import get_vector_store
-from src.config import config
+from src.config import config, get_file_mappings
+
+def _build_source_file_lookup() -> dict:
+    """Build a (api_class, version) -> source_file path lookup from config."""
+    lookup = {}
+    for file_info in get_file_mappings():
+        key = (file_info["api_class"], file_info["version"])
+        lookup[key] = file_info["path"]
+    return lookup
 
 def reingest_enriched_data():
     enriched_file = project_root / "data" / "enriched_db.json"
@@ -22,6 +30,10 @@ def reingest_enriched_data():
         
     with open(enriched_file, "r", encoding="utf-8") as f:
         enriched_data = json.load(f)
+
+    # Build source_file lookup from config
+    source_lookup = _build_source_file_lookup()
+    print(f"Source file lookup: {len(source_lookup)} entries")
 
     # 1. Clear the old database so we don't have duplicates
     print("Clearing old ChromaDB collection...")
@@ -44,6 +56,10 @@ def reingest_enriched_data():
         try:
             raw_content = item["content"]
             meta = item["metadata"]
+            
+            # Inject source_file from config lookup
+            key = (meta.get("api_class"), meta.get("version"))
+            meta["source_file"] = source_lookup.get(key, "unknown")
             
             summary = item.get("enriched_summary", "")
             keywords = item.get("enriched_keywords", [])

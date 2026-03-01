@@ -6,9 +6,10 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, To
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
-from src.dependencies import get_llm
+from src.dependencies import get_current_llm
 from src.tools import tools
 from src.config import config
+from src.trace import get_trace
 
 # ---------------------------------------------------------------------------
 # 1. State Definition
@@ -25,8 +26,8 @@ class QueryTracker(TypedDict):
     api_class: str          # e.g., "CUSTOMERS", "INVOICES"
     version: Optional[str]  # e.g., "v1", "v2", or None
     query: str              # The semantic search query
-    status: str             # "pending" | "covered" | "not_found" | "unavailable"
-    reason: Optional[str]   # Why unavailable/not_found (e.g., "API class not in system")
+    status: str             # "pending" | "covered" | "not_found" | "unavailable" | "budget_exceeded"
+    reason: Optional[str]   # Why unavailable/not_found/budget_exceeded
 
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
@@ -56,17 +57,18 @@ class AgentState(TypedDict):
     active_scope: Optional[dict]
 
 # ---------------------------------------------------------------------------
-# 2. LLM Initialization
+# 2. LLM Initialization (per-request via context variable)
 # ---------------------------------------------------------------------------
-llm = get_llm()
+# The LLM is now fetched per-request to support user-provided API keys.
+# Use get_llm_plain() and get_llm_with_tools() in node functions.
 
-# NOTE: We bind tools WITH parallel calls enabled, but control *how many*
-# through the plan — not through model-level suppression. This preserves
-# legitimate parallelism (e.g., v1 vs v2 comparisons) while eliminating spam.
-llm_with_tools = llm.bind_tools(tools)
+def get_llm_plain():
+    """Get the current request's LLM without tools bound (for planning/synthesis)."""
+    return get_current_llm()
 
-# A plain LLM (no tools) used for planning and synthesis to avoid tool-call loops.
-llm_plain = get_llm()
+def get_llm_with_tools_bound():
+    """Get the current request's LLM with tools bound (for executor)."""
+    return get_current_llm().bind_tools(tools)
 
 tool_node = ToolNode(tools)
 
@@ -201,12 +203,18 @@ def planner_node(state: AgentState) -> dict:
     Context-aware: Uses conversation history to understand follow-up questions
     and clarifications.
     """
+    trace = get_trace()
+    if trace:
+        trace.start_node("planner", {"description": "Analyzing query and building retrieval plan"})
+
     # Find the last human message
     user_message = next(
         (m for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
         None
     )
     if not user_message:
+        if trace:
+            trace.end_node("planner", {"result": "no_user_message"})
         return {"tool_plan": [], "needs_clarification": False, "intent_type": "new_intent"}
 
     print("\n[Planner] Analyzing query and building plan...")
@@ -248,7 +256,7 @@ def planner_node(state: AgentState) -> dict:
             HumanMessage(content=user_message.content)
         ]
 
-    response = llm_plain.invoke(prompt_messages)
+    response = get_llm_plain().invoke(prompt_messages)
 
     try:
         # Log the raw response for debugging
@@ -280,6 +288,12 @@ def planner_node(state: AgentState) -> dict:
         if plan_data.get("needs_clarification"):
             q = plan_data.get("clarification_question", "Could you clarify your request?")
             print(f"[Planner] Ambiguous query. Asking for clarification: {q}")
+            if trace:
+                trace.end_node("planner", {
+                    "result": "needs_clarification",
+                    "intent_type": intent_type,
+                    "clarification_question": q
+                })
             return {
                 "needs_clarification": True,
                 "tool_plan": [],
@@ -336,6 +350,12 @@ def planner_node(state: AgentState) -> dict:
                 f"{t['api_class']}: {t['reason']}" for t in query_tracker
             )
             print(f"[Planner] No valid API classes in plan. Informing user.")
+            if trace:
+                trace.end_node("planner", {
+                    "result": "all_unavailable",
+                    "intent_type": intent_type,
+                    "query_tracker": query_tracker
+                })
             return {
                 "needs_clarification": True,
                 "tool_plan": [],
@@ -349,6 +369,16 @@ def planner_node(state: AgentState) -> dict:
             status_icon = "→" if t['status'] == 'pending' else "✗"
             print(f"  {status_icon} {t['api_class']} | version={t['version']} | query='{t['query']}' | status={t['status']}")
         
+        if trace:
+            trace.end_node("planner", {
+                "result": "plan_ready",
+                "intent_type": intent_type,
+                "plan_size": len(valid_plan),
+                "unavailable_count": len(query_tracker) - len(valid_plan),
+                "plan": valid_plan,
+                "query_tracker": query_tracker
+            })
+
         return {
             "needs_clarification": False,
             "tool_plan": valid_plan,
@@ -359,11 +389,144 @@ def planner_node(state: AgentState) -> dict:
     except (json.JSONDecodeError, KeyError) as e:
         print(f"[Planner] Failed to parse plan: {e}. Falling back to free-form agent.")
         print(f"[Planner] DEBUG: Response content was: {response.content if response.content else 'EMPTY'}")
+        if trace:
+            trace.end_node("planner", {"result": "parse_error", "error": str(e)})
         return {"needs_clarification": False, "tool_plan": [], "intent_type": "new_intent"}
 
 
 # ---------------------------------------------------------------------------
-# 5. Executor (Agent) Node
+# 5. Budget Checker Node
+# ---------------------------------------------------------------------------
+# Sits between planner and executor. Checks if the plan exceeds the tool call
+# budget BEFORE execution begins. If it does, asks the user to break down
+# their query into smaller parts rather than silently truncating.
+
+def budget_checker_node(state: AgentState) -> dict:
+    """
+    Validates that the planned tool calls fit within the budget.
+    """
+    trace = get_trace()
+    plan = state.get("tool_plan", []) or []
+    current_budget = state.get("tool_call_budget", 0)
+    calls_remaining = MAX_TOOL_CALLS - current_budget
+    plan_size = len(plan)
+
+    if trace:
+        trace.start_node("budget_checker", {
+            "plan_size": plan_size,
+            "current_budget": current_budget,
+            "calls_remaining": calls_remaining,
+            "max_tool_calls": MAX_TOOL_CALLS
+        })
+
+    if plan_size <= calls_remaining:
+        # Plan fits within budget — pass through
+        print(f"[Budget Checker] Plan ({plan_size} calls) fits within budget ({calls_remaining} remaining). Proceeding.")
+        if trace:
+            trace.end_node("budget_checker", {"result": "within_budget", "plan_size": plan_size, "calls_remaining": calls_remaining})
+        return {}
+
+    # --- Plan exceeds budget ---
+
+    # RETRY PATH: we already have partial results from prior tool calls.
+    # Don't discard them by asking the user to start over — instead,
+    # execute what still fits and mark the rest as budget_exceeded.
+    if current_budget > 0:
+        executable_plan = plan[:calls_remaining] if calls_remaining > 0 else []
+        overflow_plan = plan[calls_remaining:] if calls_remaining > 0 else plan
+
+        overflow_keys = {(p['api_class'].upper(), p.get('version')) for p in overflow_plan}
+        tracker = state.get("query_tracker") or []
+        updated_tracker = []
+        for entry in tracker:
+            key = (entry['api_class'].upper(), entry.get('version'))
+            if key in overflow_keys and entry['status'] == 'pending':
+                updated_entry = dict(entry)
+                updated_entry['status'] = 'budget_exceeded'
+                updated_entry['reason'] = (
+                    f"Tool call budget ({MAX_TOOL_CALLS}) exhausted. "
+                    f"Only {calls_remaining} call(s) remaining in this session. "
+                    "Try asking about this API in a follow-up message."
+                )
+                updated_tracker.append(updated_entry)
+                overflow_keys.discard(key)
+            else:
+                updated_tracker.append(entry)
+
+        skipped_apis = [f"{p['api_class']} {p.get('version') or 'latest'}" for p in overflow_plan]
+        print(f"[Budget Checker] Retry path: {plan_size} item(s) planned, {calls_remaining} remaining. "
+              f"Executing {len(executable_plan)}, marking {len(overflow_plan)} as budget_exceeded: {', '.join(skipped_apis)}")
+
+        if trace:
+            trace.end_node("budget_checker", {
+                "result": "retry_truncated",
+                "executable": len(executable_plan),
+                "overflow": len(overflow_plan),
+                "skipped_apis": skipped_apis
+            })
+
+        return {
+            "tool_plan": executable_plan,
+            "query_tracker": updated_tracker,
+        }
+
+    # FRESH REQUEST: no prior results — ask user to break it down
+    api_list = []
+    for p in plan:
+        cls = p.get('api_class', '')
+        if cls not in api_list:
+            api_list.append(cls)
+
+    # Suggest logical batches
+    batch_size = max(1, calls_remaining)  # Use current remaining as batch hint
+    batches = [api_list[i:i + batch_size] for i in range(0, len(api_list), batch_size)]
+    batch_suggestions = "\n".join(
+        f"  - {', '.join(batch)}" for batch in batches
+    )
+
+    clarification_msg = (
+        f"Your query requires **{plan_size} lookups** but the system can process "
+        f"a maximum of **{MAX_TOOL_CALLS}** per request (with {calls_remaining} remaining in this session). "
+        f"Could you break your question into smaller parts? For example:\n"
+        f"{batch_suggestions}\n\n"
+        f"You can ask about each group in a separate message and I'll cover them all."
+    )
+
+    print(f"[Budget Checker] Plan ({plan_size} calls) exceeds budget ({calls_remaining} remaining). Asking user to narrow query.")
+    print(f"[Budget Checker] APIs in plan: {', '.join(api_list)}")
+
+    if trace:
+        trace.end_node("budget_checker", {
+            "result": "over_budget_fresh",
+            "plan_size": plan_size,
+            "calls_remaining": calls_remaining,
+            "apis": api_list
+        })
+
+    return {
+        "needs_clarification": True,
+        "messages": [AIMessage(content=clarification_msg)],
+    }
+
+
+def route_after_budget_checker(state: AgentState) -> Literal["executor", "restructurer", "__end__"]:
+    """Routes after budget check:
+    - Over budget on fresh request → __end__ (clarification)
+    - Over budget on retry with nothing left to execute → restructurer (show partial results)
+    - Within budget or truncated with items left → executor
+    """
+    if state.get("needs_clarification"):
+        return "__end__"
+    plan = state.get("tool_plan", []) or []
+    if plan:
+        return "executor"
+    # No executable plan remaining — budget exhausted on retry path.
+    # Go to restructurer so partial results are still presented.
+    return "restructurer"
+
+
+# ---------------------------------------------------------------------------
+# 6. Executor (Agent) Node
 # ---------------------------------------------------------------------------
 # The executor is now "plan-aware". Instead of letting the LLM decide what to
 # search for, it injects the plan as a hard constraint. The LLM's only job here
@@ -388,19 +551,71 @@ def executor_node(state: AgentState) -> dict:
     Executes the retrieval plan. Enforces the tool call budget.
     Only makes tool calls that are in the plan — nothing extra.
     """
+    trace = get_trace()
     current_budget = state.get("tool_call_budget", 0)
     plan = state.get("tool_plan", [])
+
+    if trace:
+        trace.start_node("executor", {
+            "current_budget": current_budget,
+            "plan_size": len(plan) if plan else 0,
+            "max_tool_calls": MAX_TOOL_CALLS
+        })
 
     # --- Budget Enforcement ---
     calls_remaining = MAX_TOOL_CALLS - current_budget
     if calls_remaining <= 0:
         print(f"\n[Executor] Tool call budget exhausted ({current_budget}/{MAX_TOOL_CALLS}). Proceeding to synthesis.")
-        # Don't write a direct answer — let restructurer→synthesizer handle it
-        # cleanly to avoid duplicate answers in the output.
+        # Mark any remaining pending items as budget_exceeded
+        tracker = state.get("query_tracker") or []
+        updated_tracker = []
+        for entry in tracker:
+            if entry["status"] == "pending":
+                updated_entry = dict(entry)
+                updated_entry["status"] = "budget_exceeded"
+                updated_entry["reason"] = (
+                    f"Tool call budget ({MAX_TOOL_CALLS}) exhausted during execution. "
+                    "Try asking about this API in a follow-up message."
+                )
+                updated_tracker.append(updated_entry)
+                print(f"[Executor] Budget exceeded for: {entry['api_class']} {entry.get('version') or 'latest'}")
+            else:
+                updated_tracker.append(entry)
         return {
             "messages": [SystemMessage(content="SYSTEM: Tool call budget exhausted. Proceed with available data.")],
             "tool_plan": [],
+            "query_tracker": updated_tracker if updated_tracker else None,
         }
+
+    # --- Runtime budget overflow ---
+    # The budget_checker_node validates the initial plan, but retries via
+    # query_expander can consume extra budget slots. If the remaining plan
+    # now exceeds what's left, truncate and mark overflow as budget_exceeded.
+    _overflow_tracker = None
+    if plan and len(plan) > calls_remaining:
+        executable_plan = plan[:calls_remaining]
+        overflow_plan = plan[calls_remaining:]
+        overflow_classes = {(p['api_class'].upper(), p.get('version')) for p in overflow_plan}
+        tracker = state.get("query_tracker") or []
+        updated_tracker = []
+        for entry in tracker:
+            key = (entry['api_class'].upper(), entry.get('version'))
+            if key in overflow_classes and entry['status'] == 'pending':
+                updated_entry = dict(entry)
+                updated_entry['status'] = 'budget_exceeded'
+                updated_entry['reason'] = (
+                    f"Tool call budget ({MAX_TOOL_CALLS}) exhausted during execution. "
+                    f"Only {calls_remaining} call(s) remained when this item was reached. "
+                    "Try asking about this API in a follow-up message."
+                )
+                updated_tracker.append(updated_entry)
+                overflow_classes.discard(key)
+            else:
+                updated_tracker.append(entry)
+        print(f"[Executor] Runtime overflow: plan has {len(plan)} items but only {calls_remaining} budget remaining. "
+              f"Executing {len(executable_plan)}, marking {len(overflow_plan)} as budget_exceeded.")
+        plan = executable_plan
+        _overflow_tracker = updated_tracker
 
     # Build the executor prompt incorporating the plan
     if plan:
@@ -410,7 +625,7 @@ def executor_node(state: AgentState) -> dict:
             for i, p in enumerate(plan)
         )
         plan_instructions = (
-            f"Execute this retrieval plan exactly ({min(len(plan), calls_remaining)} call(s)):\n{plan_text}\n\n"
+            f"Execute this retrieval plan exactly ({len(plan)} call(s)):\n{plan_text}\n\n"
             "CRITICAL: Make ONLY the tool calls listed above. If the user's query mentions other APIs "
             "(like checkout, invoices, etc.) that are NOT in this plan, DO NOT search for them. "
             "Those APIs have been filtered out because they are unavailable."
@@ -424,7 +639,7 @@ def executor_node(state: AgentState) -> dict:
     system_msg = SystemMessage(content=f"{_EXECUTOR_SYSTEM}\n\n{plan_instructions}")
     messages_to_send = [system_msg] + list(state["messages"])
 
-    response = llm_with_tools.invoke(messages_to_send)
+    response = get_llm_with_tools_bound().invoke(messages_to_send)
 
     # --- Post-validation: strip unauthorized tool calls ---
     if hasattr(response, "tool_calls") and response.tool_calls and plan:
@@ -446,13 +661,28 @@ def executor_node(state: AgentState) -> dict:
     calls_made = len(response.tool_calls) if hasattr(response, "tool_calls") and response.tool_calls else 0
     print(f"\n[Executor] Made {calls_made} tool call(s). Budget: {current_budget + calls_made}/{MAX_TOOL_CALLS}")
 
-    return {
+    if trace:
+        trace.end_node("executor", {
+            "calls_made": calls_made,
+            "budget_after": current_budget + calls_made,
+            "budget_max": MAX_TOOL_CALLS,
+            "tool_calls": [
+                {"api_class": tc.get("args", {}).get("api_class", ""), "version": tc.get("args", {}).get("version", ""), "query": tc.get("args", {}).get("query", "")}
+                for tc in (response.tool_calls if hasattr(response, "tool_calls") and response.tool_calls else [])
+            ]
+        })
+
+    result = {
         "messages": [response],
         "tool_call_budget": current_budget + calls_made,
         # Clear the plan after execution so it doesn't re-fire on the next turn
         "tool_plan": [],
         "rephrase_count": state.get("rephrase_count", 0)
     }
+    # If we had runtime overflow, persist the updated tracker
+    if _overflow_tracker is not None:
+        result["query_tracker"] = _overflow_tracker
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -470,6 +700,7 @@ The RESTRUCTURER ANALYSIS contains a coverage report with each sub-query's statu
 - COVERED: Documentation was successfully retrieved — include the answer.
 - NOT_FOUND: Search ran but no matching docs — state this to the user.
 - UNAVAILABLE: API class is not in this system — clearly inform the user.
+- BUDGET_EXCEEDED: Tool call budget ran out before this query could execute — inform the user.
 
 Rules:
 - Address EVERY sub-query from the restructurer analysis, in order.
@@ -484,6 +715,11 @@ Rules:
   * State ONLY: "No matching documentation was found for [query]."
   * Suggest the user rephrase their question.
   * Do NOT guess or infer what the answer might be.
+- For BUDGET_EXCEEDED sub-queries:
+  * Inform the user that these APIs could not be searched because the tool call budget
+    was exhausted during this request.
+  * List which APIs were skipped and suggest the user ask about them in a follow-up message.
+  * Do NOT fabricate information about these APIs.
 
 STRICT GUARDRAILS — NEVER violate these:
 1. NEVER fabricate, invent, or hallucinate any information not present in the retrieved chunks.
@@ -505,13 +741,17 @@ def synthesizer_node(state: AgentState) -> dict:
     conversation history clean for future turns.
     Also builds a turn record for the conversation operation log.
     """
+    trace = get_trace()
+    if trace:
+        trace.start_node("synthesizer", {"description": "Generating final synthesized answer"})
+
     print("\n[Synthesizer] Generating final answer...")
     analysis = state.get("restructurer_analysis", "")
     system_content = _SYNTHESIZER_SYSTEM
     if analysis:
         system_content += f"\n\nRESTRUCTURER ANALYSIS:\n\n{analysis}"
     messages_to_send = [SystemMessage(content=system_content)] + list(state["messages"])
-    response = llm_plain.invoke(messages_to_send)
+    response = get_llm_plain().invoke(messages_to_send)
 
     # --- Build turn record for the conversation operation log ---
     tracker = state.get("query_tracker") or []
@@ -556,6 +796,13 @@ def synthesizer_node(state: AgentState) -> dict:
         # No covered results — keep previous scope unchanged
         new_scope = state.get("active_scope")
 
+    if trace:
+        trace.end_node("synthesizer", {
+            "answer_length": len(response.content) if response.content else 0,
+            "operation_log_turns": len(existing_context),
+            "active_scope": new_scope
+        })
+
     return {
         "messages": [response],
         "conversation_context": existing_context,
@@ -566,40 +813,76 @@ def synthesizer_node(state: AgentState) -> dict:
 # ---------------------------------------------------------------------------
 # 7. Query Expander Node
 # ---------------------------------------------------------------------------
-# Kept but repositioned: only fires on confirmed "No documentation found" after
-# a single retry. Logic unchanged from original, but now routes to executor
-# (not agent) so the plan-awareness is preserved.
+# Per-tool retry: fires when ANY tool call returns "No documentation found".
+# Does lightweight correlation (similar to restructurer) to identify ALL
+# failed entries, then builds a retry plan for every one of them.
+# Routes through budget_checker, which truncates if retries exceed the
+# remaining budget — no need to artificially free budget slots.
 
 def query_expander(state: AgentState) -> dict:
     """
-    Triggered when a tool returns no results. Reconstructs a focused retry
-    plan from the first failed tracker entry and re-routes to the executor.
+    Triggered when any tool result is empty. Performs lightweight correlation
+    to identify ALL failed tracker entries, builds a retry plan for each,
+    and routes through budget_checker for natural truncation.
     """
-    # Reconstruct a retry plan from the first not_found tracker entry
-    # (shallow-copy dicts to avoid mutating state in-place)
+    trace = get_trace()
+    if trace:
+        trace.start_node("query_expander", {"description": "Retrying failed queries with broader terminology"})
+
     tracker = [dict(t) for t in (state.get("query_tracker", []) or [])]
-    failed = next((t for t in tracker if t["status"] == "not_found"), None)
 
+    # --- Lightweight correlation to identify failed entries ---
+    # Build tool_call_id → original args map from executor's AIMessages
+    tool_call_args = {}
+    for m in state["messages"]:
+        if isinstance(m, AIMessage) and hasattr(m, "tool_calls") and m.tool_calls:
+            for tc in m.tool_calls:
+                tool_call_args[tc["id"]] = tc.get("args", {})
+
+    def _norm_version(v):
+        return None if v in (None, "latest", "") else v
+
+    # Identify which (api_class, version) keys returned "No documentation found"
+    failed_keys = set()
+    for m in state["messages"]:
+        if isinstance(m, ToolMessage):
+            args = tool_call_args.get(m.tool_call_id, {})
+            tc_class = args.get("api_class", "").upper()
+            tc_version = _norm_version(args.get("version"))
+            if tc_class and "No documentation found" in m.content:
+                failed_keys.add((tc_class, tc_version))
+
+    # Build retry plan from ALL pending tracker entries whose tool calls failed
     retry_plan = []
-    if failed:
-        retry_plan = [{
-            "api_class": failed["api_class"],
-            "version": failed.get("version"),
-            "query": failed["query"]
-        }]
-        # Reset the failed entry back to pending for the retry
-        failed["status"] = "pending"
-        failed["reason"] = None
+    for entry in tracker:
+        if entry["status"] != "pending":
+            continue  # Already resolved (unavailable, budget_exceeded, covered)
+        key = (entry["api_class"].upper(), _norm_version(entry.get("version")))
+        if key in failed_keys:
+            retry_plan.append({
+                "api_class": entry["api_class"],
+                "version": entry.get("version"),
+                "query": entry["query"]
+            })
+            # Entry stays "pending" for the retry
 
-    print(f"\n[Query Expander] Rephrase attempt {state.get('rephrase_count', 0) + 1}/{MAX_REPHRASE}")
-    if retry_plan:
-        print(f"[Query Expander] Retrying: {retry_plan[0]['api_class']} — '{retry_plan[0]['query']}'")
+    rephrase_count = state.get("rephrase_count", 0) + 1
+    print(f"\n[Query Expander] Retry round {rephrase_count}/{MAX_REPHRASE} — {len(retry_plan)} item(s) to retry")
+    for p in retry_plan:
+        print(f"  → {p['api_class']} {p.get('version') or 'latest'} — '{p['query']}'")
+
+    if trace:
+        trace.end_node("query_expander", {
+            "rephrase_count": rephrase_count,
+            "max_rephrase": MAX_REPHRASE,
+            "retry_items": len(retry_plan),
+            "retry_plan": retry_plan
+        })
 
     return {
-        "messages": [SystemMessage(content="SYSTEM: Previous search returned no results. Use broader terminology in the retry.")],
-        "rephrase_count": state.get("rephrase_count", 0) + 1,
-        # Grant one extra budget slot for the retry
-        "tool_call_budget": max(0, state.get("tool_call_budget", 0) - 1),
+        "messages": [SystemMessage(content="SYSTEM: Some searches returned no results. Retrying failed queries with broader terminology.")],
+        "rephrase_count": rephrase_count,
+        # Budget is NOT freed — budget_checker handles truncation naturally
         "tool_plan": retry_plan,
         "query_tracker": tracker
     }
@@ -609,38 +892,49 @@ def query_expander(state: AgentState) -> dict:
 # 8. Routing Logic
 # ---------------------------------------------------------------------------
 
-def route_after_planner(state: AgentState) -> Literal["executor", "__end__"]:
+def route_after_planner(state: AgentState) -> Literal["budget_checker", "__end__"]:
     """
     If the planner asked a clarification question, end the turn (the question
-    is already in messages). Otherwise proceed to execution.
+    is already in messages). Otherwise proceed to budget check.
     """
+    trace = get_trace()
     if state.get("needs_clarification"):
+        if trace:
+            trace.add_routing("planner", "__end__", "Clarification needed")
         return "__end__"
-    return "executor"
+    if trace:
+        trace.add_routing("planner", "budget_checker", "Plan ready, checking budget")
+    return "budget_checker"
 
 
 def route_after_executor(state: AgentState) -> Literal["tools", "restructurer", "synthesizer"]:
     """Routes to tools if the executor made tool calls, to restructurer if
     returning from query_expander with no new calls, else to synthesizer."""
+    trace = get_trace()
     last_message = state["messages"][-1]
     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        if trace:
+            trace.add_routing("executor", "tools", f"Executing {len(last_message.tool_calls)} tool call(s)")
         return "tools"
     
     # If we have a query_tracker, we should always go through restructurer
-    # (e.g., coming back from query_expander with 0 new calls)
     if state.get("query_tracker"):
+        if trace:
+            trace.add_routing("executor", "restructurer", "Has query tracker, analyzing coverage")
         return "restructurer"
     
     # No tracker = budget exhausted fallback or planner failure
+    if trace:
+        trace.add_routing("executor", "synthesizer", "No tracker, direct synthesis")
     return "synthesizer"
 
 
 def route_after_tools(state: AgentState) -> Literal["query_expander", "restructurer"]:
     """
-    Checks ALL tool results, not just the last one.
-    Routes to query_expander only if ALL tool results failed.
-    Routes to restructurer if any tool call succeeded.
+    Per-tool retry routing: if ANY tool call returned 'No documentation found'
+    and retry attempts remain, route to query_expander.
     """
+    trace = get_trace()
     current_rephrase = state.get("rephrase_count", 0)
     
     # Collect all recent ToolMessages
@@ -652,21 +946,24 @@ def route_after_tools(state: AgentState) -> Literal["query_expander", "restructu
             break
     
     if not tool_messages:
+        if trace:
+            trace.add_routing("tools", "restructurer", "No tool messages found")
         return "restructurer"
     
-    # Check if ANY tool call succeeded
-    any_success = any(
-        "No documentation found" not in tm.content for tm in tool_messages
+    # Check if ANY tool call failed
+    any_failure = any(
+        "No documentation found" in tm.content for tm in tool_messages
     )
     
-    if any_success:
-        # At least some results found — proceed to restructurer
-        return "restructurer"
-    
-    # ALL tool calls failed — try query_expander if budget allows
-    if current_rephrase < MAX_REPHRASE:
+    # Route to query_expander if there are failures and retries remain
+    if any_failure and current_rephrase < MAX_REPHRASE:
+        if trace:
+            trace.add_routing("tools", "query_expander", f"Failures detected, retry {current_rephrase + 1}/{MAX_REPHRASE}")
         return "query_expander"
     
+    if trace:
+        reason = "All tools succeeded" if not any_failure else f"Retries exhausted ({current_rephrase}/{MAX_REPHRASE})"
+        trace.add_routing("tools", "restructurer", reason)
     return "restructurer"
 
 
@@ -683,12 +980,18 @@ def restructurer_node(state: AgentState) -> dict:
     Correlates tool results with tracked queries, updates statuses, and
     produces a structured coverage analysis for the synthesizer.
     """
+    trace = get_trace()
+    if trace:
+        trace.start_node("restructurer", {"description": "Analyzing coverage of retrieved data"})
+
     print("\n[Restructurer] Analyzing coverage of user's query...")
     
     query_tracker = state.get("query_tracker", []) or []
     
     if not query_tracker:
         print("[Restructurer] No query tracker found, skipping.")
+        if trace:
+            trace.end_node("restructurer", {"result": "no_tracker"})
         return {}
     
     # --- Robust correlation via tool_call_id instead of string matching ---
@@ -747,22 +1050,40 @@ def restructurer_node(state: AgentState) -> dict:
     covered = sum(1 for e in query_tracker if e['status'] == 'covered')
     not_found = sum(1 for e in query_tracker if e['status'] == 'not_found')
     unavailable = sum(1 for e in query_tracker if e['status'] == 'unavailable')
+    budget_exceeded = sum(1 for e in query_tracker if e['status'] == 'budget_exceeded')
     total = len(query_tracker)
     
-    analysis_lines.append(f"Summary: {covered}/{total} covered, {not_found} not found, {unavailable} unavailable")
+    summary_parts = [f"{covered}/{total} covered", f"{not_found} not found", f"{unavailable} unavailable"]
+    if budget_exceeded > 0:
+        summary_parts.append(f"{budget_exceeded} budget exceeded")
+    analysis_lines.append(f"Summary: {', '.join(summary_parts)}")
     
     if unavailable > 0:
         unavailable_apis = [e['api_class'] for e in query_tracker if e['status'] == 'unavailable']
         analysis_lines.append(f"Unavailable APIs: {', '.join(unavailable_apis)}")
         analysis_lines.append(f"Available APIs: {', '.join(KNOWN_API_CLASSES)}")
     
+    if budget_exceeded > 0:
+        exceeded_apis = [f"{e['api_class']} {e.get('version') or 'latest'}" for e in query_tracker if e['status'] == 'budget_exceeded']
+        analysis_lines.append(f"Budget exceeded APIs (ask in follow-up): {', '.join(exceeded_apis)}")
+    
     analysis_text = "\n".join(analysis_lines)
     
-    print(f"[Restructurer] Coverage: {covered}/{total} covered, {not_found} not found, {unavailable} unavailable")
+    print(f"[Restructurer] Coverage: {covered}/{total} covered, {not_found} not found, {unavailable} unavailable, {budget_exceeded} budget exceeded")
     for entry in query_tracker:
-        status_icon = {"covered": "✓", "not_found": "✗", "unavailable": "⊘"}.get(entry['status'], '?')
+        status_icon = {"covered": "✓", "not_found": "✗", "unavailable": "⊘", "budget_exceeded": "⏸"}.get(entry['status'], '?')
         print(f"  {status_icon} {entry['api_class']} {entry.get('version') or 'latest'} — {entry['status']}")
     
+    if trace:
+        trace.end_node("restructurer", {
+            "covered": covered,
+            "not_found": not_found,
+            "unavailable": unavailable,
+            "budget_exceeded": budget_exceeded,
+            "total": total,
+            "query_tracker": query_tracker
+        })
+
     return {
         "restructurer_analysis": analysis_text,
         "query_tracker": query_tracker
@@ -775,21 +1096,24 @@ def restructurer_node(state: AgentState) -> dict:
 
 workflow = StateGraph(AgentState)
 
-workflow.add_node("planner",        planner_node)
-workflow.add_node("executor",       executor_node)
-workflow.add_node("tools",          tool_node)
-workflow.add_node("query_expander", query_expander)
-workflow.add_node("restructurer",   restructurer_node)
-workflow.add_node("synthesizer",    synthesizer_node)
+workflow.add_node("planner",         planner_node)
+workflow.add_node("budget_checker",  budget_checker_node)
+workflow.add_node("executor",        executor_node)
+workflow.add_node("tools",           tool_node)
+workflow.add_node("query_expander",  query_expander)
+workflow.add_node("restructurer",    restructurer_node)
+workflow.add_node("synthesizer",     synthesizer_node)
 
 workflow.set_entry_point("planner")
 
 workflow.add_conditional_edges("planner",        route_after_planner)
+workflow.add_conditional_edges("budget_checker", route_after_budget_checker,
+    {"executor": "executor", "restructurer": "restructurer", "__end__": END})
 workflow.add_conditional_edges("executor",       route_after_executor,
     {"tools": "tools", "restructurer": "restructurer", "synthesizer": "synthesizer"})
 workflow.add_conditional_edges("tools",          route_after_tools)
-workflow.add_edge("query_expander", "executor")   # retry goes through executor, not planner
-workflow.add_edge("restructurer",   "synthesizer") # restructurer always leads to synthesis
+workflow.add_edge("query_expander", "budget_checker")  # retries also go through budget check
+workflow.add_edge("restructurer",   "synthesizer")     # restructurer always leads to synthesis
 workflow.add_edge("synthesizer",    END)
 
 app_graph = workflow.compile()

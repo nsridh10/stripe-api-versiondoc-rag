@@ -40,7 +40,8 @@ def ingest_documents():
         # 2. Define the strict metadata for this file
         base_metadata = {
             "api_class": file_info["api_class"],
-            "version": file_info["version"]
+            "version": file_info["version"],
+            "source_file": file_info["path"]
         }
         
         # 3. Parse and chunk

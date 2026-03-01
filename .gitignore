@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Database
+data/chroma_db/
+data/*.json
+
+# Config with sensitive data
+config.yaml
+
+# Test files
+test_*.py
+
+# OS
+.DS_Store
+Thumbs.db
