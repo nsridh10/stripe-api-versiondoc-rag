@@ -1,0 +1,26 @@
+# --- Core Framework & API ---
+fastapi>=0.110.0
+uvicorn>=0.29.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-text-splitters>=0.3.0
+langgraph>=0.2.0
+
+# --- LLM Providers ---
+langchain-openai>=1.1.10
+langchain-groq>=0.3.0
+langchain-xai>=1.2.2
+langchain-google-genai>=4.2.1
+
+# --- Embeddings (Local & Cloud) ---
+langchain-huggingface>=1.2.0
+sentence-transformers>=5.2.0
+
+# --- Vector Database ---
+langchain-chroma>=1.1.0
+
+# --- Utilities ---
+pypandoc>=1.13
+tiktoken>=0.6.0
+pyyaml>=6.0.1
+numpy>=2.0.0

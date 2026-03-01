@@ -1,0 +1,137 @@
+# config.yaml
+
+services:
+  # Plug-and-play service selection
+  embedding:
+    provider: "huggingface"
+    model_name: "BAAI/bge-small-en-v1.5" # Runs locally
+  vector_db:
+    provider: "chroma"
+    persist_directory: "data/chroma_db"
+    retrieval_k: 2
+    similarity_threshold: 0.5 # Minimum similarity score (0-1) to include chunk in results
+  memory:
+    provider: "in-memory" # Options: "in-memory", "sqlite"
+    sqlite_db_path: "data/conversation_memory.db" # Used if provider is "sqlite"
+    context_window: 5 # Number of previous message pairs to include for context
+  llm:
+    provider: "groq" # Can be swapped to "openai", "anthropic", "xai", etc.
+    model_name: "llama-3.3-70b-versatile"
+    temperature: 0.0
+  api_keys:
+    groq: "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"
+    openai: "sk-your-key-here"
+    gemini: "AIza-your-key-here"
+
+api_docs:
+  # Define the absolute "latest" version for each class here
+  latest_versions:
+    ACCOUNTS: "v2"
+    CUSTOMERS: "v2"
+    PAYMENT_INTENTS: "v2"
+    PRICES: "v2"
+    PRODUCTS: "v2"
+    REFUNDS: "v2"
+    SUBSCRIPTIONS: "v2"
+    TRANSFERS: "v2"
+
+  # Map file paths directly to their metadata. File names are ignored.
+  files:
+    # ACCOUNTS - v1 and v2
+    - path: "data/raw/ACCOUNTS_v1.rst"
+      api_class: "ACCOUNTS"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/ACCOUNTS.md"
+      api_class: "ACCOUNTS"
+      version: "v2"
+      format: "md"
+
+    # CUSTOMERS - v1 and v2
+    - path: "data/raw/CUSTOMERS_v1.rst"
+      api_class: "CUSTOMERS"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/CUSTOMERS.md"
+      api_class: "CUSTOMERS"
+      version: "v2"
+      format: "md"
+
+    # PAYMENT_INTENTS - v1 and v2
+    - path: "data/raw/PAYMENT_INTENTS_v1.rst"
+      api_class: "PAYMENT_INTENTS"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/PAYMENT_INTENTS.md"
+      api_class: "PAYMENT_INTENTS"
+      version: "v2"
+      format: "md"
+
+    # PRICES - v1 and v2
+    - path: "data/raw/PRICES_v1.rst"
+      api_class: "PRICES"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/PRICES.md"
+      api_class: "PRICES"
+      version: "v2"
+      format: "md"
+
+    # PRODUCTS - v1 and v2 (note: v2 file has typo PRODCUTS.md)
+    - path: "data/raw/PRODUCTS_v1.rst"
+      api_class: "PRODUCTS"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/PRODCUTS.md"
+      api_class: "PRODUCTS"
+      version: "v2"
+      format: "md"
+
+    # REFUNDS - v1 and v2
+    - path: "data/raw/REFUNDS_v1.rst"
+      api_class: "REFUNDS"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/REFUNDS.md"
+      api_class: "REFUNDS"
+      version: "v2"
+      format: "md"
+
+    # SUBSCRIPTIONS - v1 and v2
+    - path: "data/raw/SUBSCRIPTIONS_v1.rst"
+      api_class: "SUBSCRIPTIONS"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/SUBSCRIPTIONS.md"
+      api_class: "SUBSCRIPTIONS"
+      version: "v2"
+      format: "md"
+
+    # TRANSFERS - v1 and v2
+    - path: "data/raw/TRANSFERS_v1.rst"
+      api_class: "TRANSFERS"
+      version: "v1"
+      format: "rst"
+    - path: "data/raw/TRANSFERS.md"
+      api_class: "TRANSFERS"
+      version: "v2"
+      format: "md"
+
+agent:
+  max_rephrase_attempts: 1 # How many times to try query expansion
+  max_graph_steps: 5 # Hard limit on LLM API calls per request to prevent infinite loops
+  max_tool_calls: 6 # Hard limit on total individual tool invocations
+  max_context_turns: 10 # Max operation-log turns injected into planner prompt
+  known_api_classes:
+    - "ACCOUNTS"
+    - "CUSTOMERS"
+    - "PAYMENT_INTENTS"
+    - "SUBSCRIPTIONS"
+    - "REFUNDS"
+    - "PRODUCTS"
+    - "PRICES"
+    - "TRANSFERS"
+
+ingestion:
+  enrich_metadata: false
+  #chunking_mode: "granular"

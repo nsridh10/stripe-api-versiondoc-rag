@@ -1,0 +1,894 @@
+[
+  {
+    "chunk_id": "21ebfb3d-8d89-42a7-b237-29ada9ef063e",
+    "metadata": {
+      "api_class": "ACCOUNTS",
+      "version": "v1"
+    },
+    "content": "Accounts\n========\n\nAn Account represents a Stripe connected account on your platform. Use Stripe Connect to create and manage accounts for your users.\n\nEndpoints\n---------\n\n.. list-table::\n   :header-rows: 1\n   :widths: 15 40 45\n\n   * - Method\n     - Endpoint\n     - Description\n   * - POST\n     - ``/v1/accounts``\n     - Create a connected account\n   * - GET\n     - ``/v1/accounts/:id``\n     - Retrieve an account\n   * - GET\n     - ``/v1/accounts``\n     - List all connected accounts\n\n\nThe Account Object\n------------------\n\nKey Fields\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 30 20 50\n\n   * - Field\n     - Type\n     - Description\n   * - ``id``\n     - string\n     - Unique identifier (e.g. ``acct_1Nv0FGQ9RKHgCVdK``)\n   * - ``object``\n     - string\n     - Always ``\"account\"``\n   * - ``email``\n     - string\n     - Account's email address\n   * - ``country``\n     - string\n     - Two-letter ISO country code\n   * - ``default_currency``\n     - string\n     - Three-letter ISO currency code\n   * - ``type``\n     - enum\n     - Account type: ``standard``, ``express``, or ``custom``\n   * - ``business_name``\n     - string\n     - The business's display name\n   * - ``business_url``\n     - string\n     - The business's publicly available website\n   * - ``charges_enabled``\n     - boolean\n     - Whether the account can process charges\n   * - ``payouts_enabled``\n     - boolean\n     - Whether the account can receive payouts\n   * - ``details_submitted``\n     - boolean\n     - Whether required onboarding details have been submitted\n   * - ``created``\n     - timestamp\n     - Unix timestamp of creation\n   * - ``metadata``\n     - object\n     - Key-value pairs for storing extra info\n   * - ``verification.disabled_reason``\n     - string\n     - Reason the account is disabled, if applicable\n   * - ``verification.fields_needed``\n     - array\n     - Fields that must be collected to keep the account enabled\n\nExample Object\n~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n     \"object\": \"account\",\n     \"email\": \"jenny.rosen@example.com\",\n     \"country\": \"US\",\n     \"default_currency\": \"usd\",\n     \"type\": \"express\",\n     \"business_name\": null,\n     \"business_url\": null,\n     \"charges_enabled\": false,\n     \"payouts_enabled\": false,\n     \"details_submitted\": false,\n     \"created\": 1695830751,\n     \"metadata\": {},\n     \"verification\": {\n       \"disabled_reason\": \"fields_needed\",\n       \"fields_needed\": [\"business_url\", \"external_account\", \"tos_acceptance.date\"]\n     }\n   }\n\n\nCreate an Account\n-----------------\n\n**POST** ``/v1/accounts``\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 15 30\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``type``\n     - enum\n     - optional\n     - Account type: ``standard``, ``express``, or ``custom``\n   * - ``country``\n     - string\n     - optional\n     - Two-letter ISO country code (defaults to platform country)\n   * - ``email``\n     - string\n     - optional\n     - Account's email address\n   * - ``business_name``\n     - string\n     - optional\n     - The business's display name\n   * - ``business_url``\n     - string\n     - optional\n     - The business's publicly available website\n   * - ``support_email``\n     - string\n     - optional\n     - Public support email\n   * - ``support_phone``\n     - string\n     - optional\n     - Public support phone\n   * - ``metadata``\n     - object\n     - optional\n     - Key-value pairs for storing extra info\n   * - ``tos_acceptance.date``\n     - timestamp\n     - optional\n     - Unix timestamp when account rep accepted ToS\n   * - ``tos_acceptance.ip``\n     - string\n     - optional\n     - IP address from which ToS was accepted\n\nReturns\n~~~~~~~\n\nReturns an Account object if the call succeeds.\n\nExample Request\n~~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 Accounts API overview, the Account object structure, and its key fields for managing Stripe connected accounts.",
+    "enriched_keywords": [
+      "connected accounts",
+      "Account object",
+      "Stripe Connect",
+      "verification fields",
+      "account type"
+    ],
+    "enriched_questions": [
+      "What fields does the Stripe Account object contain?",
+      "How does Stripe represent a connected account?",
+      "What endpoints are available for managing accounts in v1?",
+      "What does the verification object tell you about an account?"
+    ]
+  },
+  {
+    "chunk_id": "6d22321b-227c-4b8f-a739-760a0c3627a5",
+    "metadata": {
+      "api_class": "ACCOUNTS",
+      "version": "v1"
+    },
+    "content": ".. code-block:: bash\n\n   curl https://api.stripe.com/v1/accounts \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d type=express \\\n     -d country=US \\\n     --data-urlencode email=\"jenny.rosen@example.com\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n     \"object\": \"account\",\n     \"email\": \"jenny.rosen@example.com\",\n     \"country\": \"US\",\n     \"default_currency\": \"usd\",\n     \"type\": \"express\",\n     \"charges_enabled\": false,\n     \"payouts_enabled\": false,\n     \"details_submitted\": false,\n     \"created\": 1695830751,\n     \"metadata\": {},\n     \"verification\": {\n       \"disabled_reason\": \"fields_needed\",\n       \"fields_needed\": [\"business_url\", \"external_account\"]\n     }\n   }\n\n\nRetrieve an Account\n-------------------\n\n**GET** ``/v1/accounts/:id``\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 20 20 60\n\n   * - Parameter\n     - Type\n     - Description\n   * - ``id``\n     - string (path)\n     - The ID of the account to retrieve\n\nReturns\n~~~~~~~\n\nReturns an Account object if the call succeeds. Raises an error if the account ID does not exist.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/accounts/acct_1Nv0FGQ9RKHgCVdK \\\n     -u \"<<YOUR_SECRET_KEY>>\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n     \"object\": \"account\",\n     \"email\": \"jenny.rosen@example.com\",\n     \"country\": \"US\",\n     \"default_currency\": \"usd\",\n     \"type\": \"express\",\n     \"charges_enabled\": false,\n     \"payouts_enabled\": false,\n     \"details_submitted\": false,\n     \"created\": 1695830751,\n     \"metadata\": {},\n     \"verification\": {\n       \"disabled_reason\": \"fields_needed\",\n       \"fields_needed\": [\"business_url\", \"external_account\", \"tos_acceptance.date\"]\n     }\n   }\n\n\nList All Connected Accounts\n---------------------------\n\n**GET** ``/v1/accounts``\n\nReturns a list of accounts connected to your platform via Connect. If you're not a platform, the list is empty.\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 25 20 15 40\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``limit``\n     - integer\n     - optional\n     - Number of results to return (1\u2013100, default 10)\n   * - ``starting_after``\n     - string\n     - optional\n     - Account ID cursor \u2014 fetch the next page after this ID\n   * - ``ending_before``\n     - string\n     - optional\n     - Account ID cursor \u2014 fetch the previous page before this ID\n   * - ``created.gt``\n     - integer\n     - optional\n     - Return accounts created after this Unix timestamp (exclusive)\n   * - ``created.gte``\n     - integer\n     - optional\n     - Return accounts created at or after this Unix timestamp (inclusive)\n   * - ``created.lt``\n     - integer\n     - optional\n     - Return accounts created before this Unix timestamp (exclusive)\n   * - ``created.lte``\n     - integer\n     - optional\n     - Return accounts created at or before this Unix timestamp (inclusive)\n\nReturns\n~~~~~~~\n\nA dictionary with a ``data`` array of Account objects. Includes ``has_more`` for pagination.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl -G https://api.stripe.com/v1/accounts \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d limit=3\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"object\": \"list\",\n     \"url\": \"/v1/accounts\",\n     \"has_more\": false,\n     \"data\": [\n       {\n         \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n         \"object\": \"account\",\n         \"email\": \"jenny.rosen@example.com\",\n         \"country\": \"US\",\n         \"default_currency\": \"usd\",\n         \"type\": \"express\",\n         \"charges_enabled\": false,\n         \"payouts_enabled\": false,\n         \"details_submitted\": false,\n         \"created\": 1695830751,\n         \"metadata\": {},\n         \"verification\": {\n           \"disabled_reason\": \"fields_needed\",\n           \"fields_needed\": [\"business_url\", \"external_account\"]\n         }\n       }\n     ]\n   }",
+    "enriched_summary": "Covers the v1 API request and response examples for creating, retrieving, and listing connected accounts.",
+    "enriched_keywords": [
+      "create account",
+      "list accounts",
+      "retrieve account",
+      "pagination",
+      "curl example"
+    ],
+    "enriched_questions": [
+      "How do you create a connected account in v1?",
+      "What does the response look like when retrieving an account?",
+      "How do you paginate through connected accounts?",
+      "What parameters can you pass when listing accounts?"
+    ]
+  },
+  {
+    "chunk_id": "e4c88776-5078-4528-b676-89e9be54b7c5",
+    "metadata": {
+      "version": "v2",
+      "api_class": "ACCOUNTS"
+    },
+    "content": "# The Account Object\n\nA Stripe Account represents a connected account on your platform via Stripe Connect.\n\n## Key Fields\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `id` | string | Unique identifier (e.g. `acct_1Nv0FGQ9RKHgCVdK`) |\n| `object` | string | Always `\"account\"` |\n| `email` | string | Account's email address |\n| `country` | string | Two-letter ISO country code |\n| `default_currency` | string | Three-letter ISO currency code |\n| `type` | enum | Account type: `standard`, `express`, `custom`, or `none` |\n| `business_type` | enum | `individual`, `company`, `non_profit`, or `government_entity` |\n| `charges_enabled` | boolean | Whether the account can process charges |\n| `payouts_enabled` | boolean | Whether the account can receive payouts |\n| `details_submitted` | boolean | Whether required onboarding details have been submitted |\n| `created` | timestamp | Unix timestamp of creation |\n| `metadata` | object | Key-value pairs for storing extra info |\n| `capabilities` | object | Hash of capability names to their status: `active`, `inactive`, or `pending` |\n| `requirements.currently_due` | array | Fields that must be collected to keep the account enabled |\n| `requirements.disabled_reason` | string | Reason the account is disabled, if applicable |\n| `controller.type` | enum | Who controls the account: `application` or `account` |\n| `controller.requirement_collection` | enum | Who collects requirements: `stripe` or `application` |\n| `controller.stripe_dashboard.type` | enum | Dashboard access type: `express`, `full`, or `none` |\n\n## Example Object\n\n```json\n{\n  \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n  \"object\": \"account\",\n  \"email\": \"jenny.rosen@example.com\",\n  \"country\": \"US\",\n  \"default_currency\": \"usd\",\n  \"type\": \"none\",\n  \"business_type\": null,\n  \"charges_enabled\": false,\n  \"payouts_enabled\": false,\n  \"details_submitted\": false,\n  \"created\": 1695830751,\n  \"metadata\": {},\n  \"capabilities\": {},\n  \"requirements\": {\n    \"currently_due\": [\"business_profile.mcc\", \"business_profile.url\", \"business_type\", \"external_account\"],\n    \"disabled_reason\": \"requirements.past_due\",\n    \"errors\": [],\n    \"eventually_due\": [],\n    \"past_due\": [],\n    \"pending_verification\": []\n  },\n  \"controller\": {\n    \"type\": \"application\",\n    \"is_controller\": true,\n    \"requirement_collection\": \"stripe\",\n    \"stripe_dashboard\": { \"type\": \"express\" },\n    \"fees\": { \"payer\": \"application\" },\n    \"losses\": { \"payments\": \"application\" }\n  }\n}\n```\n# Accounts (Connect)\n\nAn Account represents a Stripe connected account on your platform. Use Stripe Connect to create and manage accounts for your users.\n\n## Endpoints\n\n| Method | Endpoint | Description |\n|--------|----------|-------------|\n| POST | `/v1/accounts` | Create a connected account |\n| GET | `/v1/accounts/:id` | Retrieve an account |\n| GET | `/v1/accounts` | List all connected accounts |\n# Create an Account\n\n**POST** `/v1/accounts`\n\nCreates a new connected account for a user on your platform via Stripe Connect.",
+    "enriched_summary": "Covers the v2 Account object structure with new fields like capabilities, requirements, and controller, and the available endpoints.",
+    "enriched_keywords": [
+      "capabilities",
+      "controller",
+      "requirements",
+      "Account object v2",
+      "connected accounts"
+    ],
+    "enriched_questions": [
+      "What new fields were added to the Account object in v2?",
+      "How does the controller object work in a v2 Account?",
+      "What is the difference between the Account object in v1 and v2?",
+      "How are account requirements tracked in v2?",
+      "What account types are supported in v2?"
+    ]
+  },
+  {
+    "chunk_id": "f6be30db-3b2d-4746-9e48-61ec5b962ff0",
+    "metadata": {
+      "api_class": "ACCOUNTS",
+      "version": "v2"
+    },
+    "content": "## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `type` | enum | optional | Account type: `standard`, `express`, or `custom` |\n| `country` | string | optional | Two-letter ISO country code (defaults to platform country) |\n| `email` | string | optional | Account's email address |\n| `capabilities` | object | conditionally required | Required for Custom accounts (`controller.stripe_dashboard.type = none`). Each key is a capability name with `requested: true` to enable it |\n| `business_type` | enum | optional | `individual`, `company`, `non_profit`, or `government_entity` |\n| `business_profile.name` | string | optional | Customer-facing business name |\n| `business_profile.url` | string | optional | Business's publicly available website |\n| `business_profile.support_email` | string | optional | Public support email |\n| `business_profile.support_phone` | string | optional | Public support phone |\n| `business_profile.mcc` | string | optional | Merchant category code (4 chars) |\n| `metadata` | object | optional | Key-value pairs for storing extra info |\n| `controller.fees.payer` | enum | optional | Who pays Stripe fees: `application` or `account` |\n| `controller.losses.payments` | enum | optional | Who bears payment losses: `application` or `stripe` |\n| `controller.stripe_dashboard.type` | enum | optional | Dashboard access: `express`, `full`, or `none` |\n| `tos_acceptance.date` | timestamp | optional | Unix timestamp when account rep accepted ToS |\n| `tos_acceptance.ip` | string | optional | IP address from which ToS was accepted |\n\n## Returns\n\nReturns an Account object if the call succeeds.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/accounts \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d country=US \\\n  --data-urlencode email=\"jenny.rosen@example.com\" \\\n  -d \"controller[fees][payer]\"=application \\\n  -d \"controller[losses][payments]\"=application \\\n  -d \"controller[stripe_dashboard][type]\"=express\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n  \"object\": \"account\",\n  \"email\": \"jenny.rosen@example.com\",\n  \"country\": \"US\",\n  \"default_currency\": \"usd\",\n  \"type\": \"none\",\n  \"charges_enabled\": false,\n  \"payouts_enabled\": false,\n  \"details_submitted\": false,\n  \"created\": 1695830751,\n  \"metadata\": {},\n  \"capabilities\": {},\n  \"controller\": {\n    \"type\": \"application\",\n    \"requirement_collection\": \"stripe\",\n    \"stripe_dashboard\": { \"type\": \"express\" },\n    \"fees\": { \"payer\": \"application\" },\n    \"losses\": { \"payments\": \"application\" }\n  },\n  \"requirements\": {\n    \"currently_due\": [\"business_profile.mcc\", \"business_profile.url\", \"business_type\", \"external_account\"],\n    \"disabled_reason\": \"requirements.past_due\"\n  }\n}\n```\n# Retrieve an Account\n\n**GET** `/v1/accounts/:id`\n\n## Parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `id` | string (path) | The ID of the account to retrieve |\n\n## Returns\n\nReturns an Account object if the call succeeds. Raises an error if the account ID does not exist.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/accounts/acct_1Nv0FGQ9RKHgCVdK \\\n  -u \"<<YOUR_SECRET_KEY>>\"\n```",
+    "enriched_summary": "Covers the v2 Create Account API parameters, return value, and a curl example including controller configuration.",
+    "enriched_keywords": [
+      "create account v2",
+      "controller fees",
+      "stripe dashboard type",
+      "capabilities",
+      "business profile"
+    ],
+    "enriched_questions": [
+      "What parameters are required to create an account in v2?",
+      "How do you configure who pays Stripe fees when creating an account?",
+      "How do you set dashboard access when creating a connected account?",
+      "What is the curl example for creating a v2 account?",
+      "How does creating an account differ between v1 and v2?"
+    ]
+  },
+  {
+    "chunk_id": "c905566f-ecc5-40ed-8185-5c94d7c9fff8",
+    "metadata": {
+      "version": "v2",
+      "api_class": "ACCOUNTS"
+    },
+    "content": "## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/accounts/acct_1Nv0FGQ9RKHgCVdK \\\n  -u \"<<YOUR_SECRET_KEY>>\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n  \"object\": \"account\",\n  \"email\": \"jenny.rosen@example.com\",\n  \"country\": \"US\",\n  \"default_currency\": \"usd\",\n  \"type\": \"none\",\n  \"charges_enabled\": false,\n  \"payouts_enabled\": false,\n  \"details_submitted\": false,\n  \"created\": 1695830751,\n  \"metadata\": {},\n  \"capabilities\": {},\n  \"controller\": {\n    \"type\": \"application\",\n    \"requirement_collection\": \"stripe\",\n    \"stripe_dashboard\": { \"type\": \"express\" },\n    \"fees\": { \"payer\": \"application\" },\n    \"losses\": { \"payments\": \"application\" }\n  },\n  \"requirements\": {\n    \"currently_due\": [\"business_profile.mcc\", \"business_profile.url\", \"business_type\", \"external_account\"],\n    \"disabled_reason\": \"requirements.past_due\",\n    \"errors\": [],\n    \"past_due\": [],\n    \"pending_verification\": []\n  }\n}\n```\n# List All Connected Accounts\n\n**GET** `/v1/accounts`\n\nReturns a list of accounts connected to your platform via Connect. If you're not a platform, the list is empty.\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `limit` | integer | optional | Number of results to return (1\u2013100, default 10) |\n| `starting_after` | string | optional | Account ID cursor \u2014 fetch the next page after this ID |\n| `ending_before` | string | optional | Account ID cursor \u2014 fetch the previous page before this ID |\n| `created.gt` | integer | optional | Return accounts created after this Unix timestamp (exclusive) |\n| `created.gte` | integer | optional | Return accounts created at or after this Unix timestamp (inclusive) |\n| `created.lt` | integer | optional | Return accounts created before this Unix timestamp (exclusive) |\n| `created.lte` | integer | optional | Return accounts created at or before this Unix timestamp (inclusive) |\n\n## Returns\n\nA dictionary with a `data` array of Account objects. Includes `has_more` for pagination.\n\n## Example Request\n\n```curl\ncurl -G https://api.stripe.com/v1/accounts \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d limit=3\n```\n\n## Example Response\n\n```json\n{\n  \"object\": \"list\",\n  \"url\": \"/v1/accounts\",\n  \"has_more\": false,\n  \"data\": [\n    {\n      \"id\": \"acct_1Nv0FGQ9RKHgCVdK\",\n      \"object\": \"account\",\n      \"email\": \"jenny.rosen@example.com\",\n      \"country\": \"US\",\n      \"default_currency\": \"usd\",\n      \"type\": \"none\",\n      \"charges_enabled\": false,\n      \"payouts_enabled\": false,\n      \"details_submitted\": false,\n      \"created\": 1695830751,\n      \"metadata\": {},\n      \"capabilities\": {},\n      \"requirements\": {\n        \"currently_due\": [\"business_profile.mcc\", \"business_type\", \"external_account\"],\n        \"disabled_reason\": \"requirements.past_due\"\n      }\n    }\n  ]\n}\n```",
+    "enriched_summary": "Covers v2 retrieve and list connected accounts endpoints with example requests and responses including requirements and capabilities.",
+    "enriched_keywords": [
+      "retrieve account",
+      "list accounts",
+      "requirements.currently_due",
+      "pagination cursors",
+      "v2 response"
+    ],
+    "enriched_questions": [
+      "What does a v2 retrieve account response look like?",
+      "How do you list connected accounts in v2?",
+      "How does pagination work when listing v2 accounts?",
+      "What requirement fields appear in a v2 account response?"
+    ]
+  },
+  {
+    "chunk_id": "74854b98-1d4a-4da9-a4e9-65afb44fcd05",
+    "metadata": {
+      "version": "v1",
+      "api_class": "CUSTOMERS"
+    },
+    "content": "Customers\n=========\n\nA Customer object represents a customer of your business. Use it to save payment and contact information and track payments.\n\nEndpoints\n---------\n\n.. list-table::\n   :header-rows: 1\n   :widths: 15 40 45\n\n   * - Method\n     - Endpoint\n     - Description\n   * - POST\n     - ``/v1/customers``\n     - Create a customer\n   * - POST\n     - ``/v1/customers/:id``\n     - Update a customer\n   * - GET\n     - ``/v1/customers/:id``\n     - Retrieve a customer\n   * - GET\n     - ``/v1/customers``\n     - List all customers\n\n\nThe Customer Object\n-------------------\n\nKey Fields\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 30 20 50\n\n   * - Field\n     - Type\n     - Description\n   * - ``id``\n     - string\n     - Unique identifier (e.g. ``cus_NffrFeUfNV2Hib``)\n   * - ``object``\n     - string\n     - Always ``\"customer\"``\n   * - ``full_name``\n     - string\n     - Customer's full name or business name\n   * - ``email``\n     - string\n     - Customer's email address\n   * - ``phone``\n     - string\n     - Customer's phone number\n   * - ``description``\n     - string\n     - Arbitrary string for display/notes\n   * - ``metadata``\n     - object\n     - Key-value pairs for storing extra info\n   * - ``address``\n     - object\n     - Address: city, country, line1, line2, postal_code, state\n   * - ``balance``\n     - integer\n     - Current balance in cents. Negative = credit, positive = amount owed\n   * - ``currency``\n     - string\n     - Three-letter ISO currency code for recurring billing\n   * - ``delinquent``\n     - boolean\n     - True if customer has a past-due invoice\n   * - ``created``\n     - timestamp\n     - Unix timestamp of creation\n   * - ``livemode``\n     - boolean\n     - True if live mode, false if test mode\n   * - ``default_source``\n     - string\n     - ID of default payment source attached to this customer\n   * - ``invoice_settings.default_source``\n     - string\n     - ID of default source for subscriptions/invoices\n\nExample Object\n~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"cus_NffrFeUfNV2Hib\",\n     \"object\": \"customer\",\n     \"full_name\": \"Jenny Rosen\",\n     \"email\": \"jennyrosen@example.com\",\n     \"phone\": null,\n     \"description\": null,\n     \"metadata\": {},\n     \"address\": null,\n     \"balance\": 0,\n     \"currency\": null,\n     \"delinquent\": false,\n     \"created\": 1680893993,\n     \"livemode\": false,\n     \"default_source\": null,\n     \"invoice_settings\": {\n       \"default_source\": null,\n       \"custom_fields\": null,\n       \"footer\": null\n     }\n   }\n\n\nCreate a Customer\n-----------------\n\n**POST** ``/v1/customers``\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 15 30\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``full_name``\n     - string\n     - optional\n     - Full name or business name (max 256 chars)\n   * - ``email``\n     - string\n     - optional\n     - Email address (max 512 chars)\n   * - ``phone``\n     - string\n     - optional\n     - Phone number (max 20 chars)\n   * - ``description``\n     - string\n     - optional\n     - Arbitrary string for display/notes\n   * - ``metadata``\n     - object\n     - optional\n     - Key-value pairs for storing extra info\n   * - ``address``\n     - object\n     - optional\n     - Address fields: city, country, line1, line2, postal_code, state\n   * - ``balance``\n     - integer\n     - optional\n     - Starting balance in cents\n   * - ``source``\n     - string\n     - optional\n     - Token or source ID to attach as the customer's default payment source\n   * - ``invoice_settings.default_source``\n     - string\n     - optional\n     - Default source ID for invoices/subscriptions\n\nReturns\n~~~~~~~\n\nReturns the Customer object after successful creation. Raises an error if parameters are invalid.\n\nExample Request\n~~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 Customers API overview, the Customer object fields, and the create customer endpoint parameters.",
+    "enriched_keywords": [
+      "Customer object",
+      "create customer",
+      "invoice settings",
+      "default source",
+      "balance"
+    ],
+    "enriched_questions": [
+      "What fields does the v1 Customer object include?",
+      "What endpoints are available for managing customers?",
+      "How do you create a customer in v1?",
+      "What does the balance field represent on a Customer object?"
+    ]
+  },
+  {
+    "chunk_id": "3c5e0cca-ba47-4fa2-b9e8-a2a977420859",
+    "metadata": {
+      "api_class": "CUSTOMERS",
+      "version": "v1"
+    },
+    "content": ".. code-block:: bash\n\n   curl https://api.stripe.com/v1/customers \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d full_name=\"Jenny Rosen\" \\\n     --data-urlencode email=\"jennyrosen@example.com\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"cus_NffrFeUfNV2Hib\",\n     \"object\": \"customer\",\n     \"full_name\": \"Jenny Rosen\",\n     \"email\": \"jennyrosen@example.com\",\n     \"balance\": 0,\n     \"created\": 1680893993,\n     \"livemode\": false,\n     \"default_source\": null,\n     \"metadata\": {}\n   }\n\n\nUpdate a Customer\n-----------------\n\n**POST** ``/v1/customers/:id``\n\nParameters\n~~~~~~~~~~\n\nAny subset of fields can be updated. Pass an empty string to clear a field.\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 45\n\n   * - Parameter\n     - Type\n     - Description\n   * - ``full_name``\n     - string\n     - Full name or business name\n   * - ``email``\n     - string\n     - Email address\n   * - ``phone``\n     - string\n     - Phone number\n   * - ``description``\n     - string\n     - Arbitrary string for display/notes\n   * - ``metadata``\n     - object\n     - Key-value pairs. Set a key to empty string to unset it\n   * - ``address``\n     - object\n     - Address: city, country, line1, line2, postal_code, state\n   * - ``balance``\n     - integer\n     - Balance in cents. Negative = credit, positive = amount owed\n   * - ``source``\n     - string\n     - New default payment source token or ID\n   * - ``invoice_settings.default_source``\n     - string\n     - Default source ID for invoices/subscriptions\n\nReturns\n~~~~~~~\n\nReturns the updated Customer object. Raises an error if parameters are invalid.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/customers/cus_NffrFeUfNV2Hib \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     --data-urlencode email=\"alice@new.com\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"cus_NffrFeUfNV2Hib\",\n     \"object\": \"customer\",\n     \"full_name\": \"Jenny Rosen\",\n     \"email\": \"alice@new.com\",\n     \"balance\": 0,\n     \"created\": 1680893993,\n     \"livemode\": false,\n     \"default_source\": null,\n     \"metadata\": {}\n   }\n\n\nRetrieve a Customer\n-------------------\n\n**GET** ``/v1/customers/:id``\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 20 20 60\n\n   * - Parameter\n     - Type\n     - Description\n   * - ``id``\n     - string (path)\n     - The ID of the customer to retrieve\n\nReturns\n~~~~~~~\n\nReturns the Customer object for a valid identifier. If the customer was deleted, returns a subset with ``deleted: true``.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/customers/cus_NffrFeUfNV2Hib \\\n     -u \"<<YOUR_SECRET_KEY>>\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"cus_NffrFeUfNV2Hib\",\n     \"object\": \"customer\",\n     \"full_name\": \"Jenny Rosen\",\n     \"email\": \"jennyrosen@example.com\",\n     \"balance\": 0,\n     \"delinquent\": false,\n     \"created\": 1680893993,\n     \"livemode\": false,\n     \"default_source\": null,\n     \"metadata\": {}\n   }\n\n\nList All Customers\n------------------\n\n**GET** ``/v1/customers``\n\nParameters\n~~~~~~~~~~",
+    "enriched_summary": "Covers v1 create, update, retrieve, and list customer examples with curl requests and JSON responses.",
+    "enriched_keywords": [
+      "update customer",
+      "retrieve customer",
+      "list customers",
+      "email filter",
+      "curl example"
+    ],
+    "enriched_questions": [
+      "How do you update a customer's email in v1?",
+      "What does the response look like when retrieving a v1 customer?",
+      "How do you filter customers by email when listing?",
+      "What parameters can be updated on a v1 customer?"
+    ]
+  },
+  {
+    "chunk_id": "ade67362-26d4-4c39-b39a-bee5ae742abb",
+    "metadata": {
+      "version": "v1",
+      "api_class": "CUSTOMERS"
+    },
+    "content": ".. list-table::\n   :header-rows: 1\n   :widths: 25 20 15 40\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``email``\n     - string\n     - optional\n     - Filter by exact email address (case-sensitive)\n   * - ``limit``\n     - integer\n     - optional\n     - Number of results to return (1\u2013100, default 10)\n   * - ``starting_after``\n     - string\n     - optional\n     - Customer ID cursor \u2014 fetch the next page after this ID\n   * - ``ending_before``\n     - string\n     - optional\n     - Customer ID cursor \u2014 fetch the previous page before this ID\n   * - ``created.gt``\n     - integer\n     - optional\n     - Return customers created after this Unix timestamp (exclusive)\n   * - ``created.gte``\n     - integer\n     - optional\n     - Return customers created at or after this Unix timestamp (inclusive)\n   * - ``created.lt``\n     - integer\n     - optional\n     - Return customers created before this Unix timestamp (exclusive)\n   * - ``created.lte``\n     - integer\n     - optional\n     - Return customers created at or before this Unix timestamp (inclusive)\n\nReturns\n~~~~~~~\n\nA dictionary with a ``data`` array of Customer objects, sorted newest first. Includes ``has_more`` boolean for pagination.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl -G https://api.stripe.com/v1/customers \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d limit=3\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"object\": \"list\",\n     \"url\": \"/v1/customers\",\n     \"has_more\": false,\n     \"data\": [\n       {\n         \"id\": \"cus_NffrFeUfNV2Hib\",\n         \"object\": \"customer\",\n         \"full_name\": \"Jenny Rosen\",\n         \"email\": \"jennyrosen@example.com\",\n         \"balance\": 0,\n         \"created\": 1680893993,\n         \"livemode\": false,\n         \"default_source\": null,\n         \"metadata\": {}\n       }\n     ]\n   }",
+    "enriched_summary": "Covers the v1 list customers endpoint parameters including filtering, pagination, and the response structure.",
+    "enriched_keywords": [
+      "list customers",
+      "pagination",
+      "email filter",
+      "created timestamp",
+      "has_more"
+    ],
+    "enriched_questions": [
+      "How do you paginate through customers in v1?",
+      "What filters are available when listing customers?",
+      "How do you list customers created after a specific date?",
+      "What does the list customers response look like in v1?"
+    ]
+  },
+  {
+    "chunk_id": "97d0280a-6d90-424d-b911-e857eb545f9a",
+    "metadata": {
+      "api_class": "CUSTOMERS",
+      "version": "v2"
+    },
+    "content": "# The Customer Object\n\n## Key Fields\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `id` | string | Unique identifier (e.g. `cus_NffrFeUfNV2Hib`) |\n| `object` | string | Always `\"customer\"` |\n| `name` | string | Full name or business name |\n| `email` | string | Customer's email address |\n| `phone` | string | Customer's phone number |\n| `description` | string | Arbitrary string for display/notes |\n| `metadata` | object | Key-value pairs for storing extra info |\n| `address` | object | Address: city, country, line1, line2, postal_code, state |\n| `balance` | integer | Current balance in cents. Negative = credit, positive = amount owed |\n| `currency` | string | Three-letter ISO currency code for recurring billing |\n| `delinquent` | boolean | True if customer has a past-due invoice |\n| `created` | timestamp | Unix timestamp of creation |\n| `livemode` | boolean | True if live mode, false if test mode |\n| `default_source` | string | ID of default payment source |\n| `invoice_settings.default_payment_method` | string | ID of default PaymentMethod for subscriptions/invoices |\n\n## Example\n\n```json\n{\n  \"id\": \"cus_NffrFeUfNV2Hib\",\n  \"object\": \"customer\",\n  \"name\": \"Jenny Rosen\",\n  \"email\": \"jennyrosen@example.com\",\n  \"phone\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"address\": null,\n  \"balance\": 0,\n  \"currency\": null,\n  \"delinquent\": false,\n  \"created\": 1680893993,\n  \"livemode\": false,\n  \"default_source\": null,\n  \"invoice_settings\": {\n    \"default_payment_method\": null,\n    \"custom_fields\": null,\n    \"footer\": null,\n    \"rendering_options\": null\n  },\n  \"invoice_prefix\": \"0759376C\",\n  \"next_invoice_sequence\": 1,\n  \"preferred_locales\": [],\n  \"shipping\": null,\n  \"tax_exempt\": \"none\",\n  \"test_clock\": null\n}\n```\n# Customers\n\nA Customer object represents a customer of your business. Use it to save payment and contact information and track payments.\n\n## Endpoints\n\n| Method | Endpoint | Description |\n|--------|----------|-------------|\n| POST | `/v1/customers` | Create a customer |\n| POST | `/v1/customers/:id` | Update a customer |\n| GET | `/v1/customers/:id` | Retrieve a customer |\n| GET | `/v1/customers` | List all customers |\n# Create a Customer\n\n**POST** `/v1/customers`\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `name` | string | optional | Full name or business name (max 256 chars) |\n| `email` | string | optional | Email address (max 512 chars) |\n| `phone` | string | optional | Phone number (max 20 chars) |\n| `description` | string | optional | Arbitrary string for display/notes |\n| `metadata` | object | optional | Key-value pairs for storing extra info |\n| `address` | object | optional | Address: city, country, line1, line2, postal_code, state |\n| `balance` | integer | optional | Starting balance in cents |\n| `payment_method` | string | optional | ID of a PaymentMethod to attach |\n| `invoice_settings.default_payment_method` | string | optional | Default PaymentMethod ID for invoices/subscriptions |\n\n## Returns\n\nReturns the Customer object after successful creation. Raises an error if parameters are invalid.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/customers \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d name=\"Jenny Rosen\" \\\n  --data-urlencode email=\"jennyrosen@example.com\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"cus_NffrFeUfNV2Hib\",\n  \"object\": \"customer\",\n  \"name\": \"Jenny Rosen\",\n  \"email\": \"jennyrosen@example.com\",\n  \"phone\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"address\": null,\n  \"balance\": 0,\n  \"created\": 1680893993,\n  \"livemode\": false,\n  \"default_source\": null,\n  \"invoice_settings\": {\n    \"default_payment_method\": null,\n    \"custom_fields\": null,\n    \"footer\": null,\n    \"rendering_options\": null\n  }\n}\n```\n# Update a Customer\n\n**POST** `/v1/customers/:id`",
+    "enriched_summary": "Covers the v2 Customer object with updated fields like name, invoice_settings.default_payment_method, and the create customer endpoint.",
+    "enriched_keywords": [
+      "Customer object v2",
+      "default_payment_method",
+      "name field",
+      "create customer",
+      "invoice settings"
+    ],
+    "enriched_questions": [
+      "What changed in the Customer object between v1 and v2?",
+      "What is the difference between default_source and default_payment_method?",
+      "How do you create a customer in v2?",
+      "What fields does the v2 Customer object include?",
+      "How does invoice settings differ in v2 versus v1?"
+    ]
+  },
+  {
+    "chunk_id": "2d145590-f777-43bc-a198-8daa0dabc2c4",
+    "metadata": {
+      "api_class": "CUSTOMERS",
+      "version": "v2"
+    },
+    "content": "## Parameters\n\nAny subset of fields can be updated. Pass an empty string to clear a field.\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `name` | string | Full name or business name |\n| `email` | string | Email address |\n| `phone` | string | Phone number |\n| `description` | string | Arbitrary string for display/notes |\n| `metadata` | object | Key-value pairs. Set a key to empty string to unset it |\n| `address` | object | Address: city, country, line1, line2, postal_code, state |\n| `balance` | integer | Balance in cents. Negative = credit, positive = amount owed |\n| `invoice_settings.default_payment_method` | string | Default PaymentMethod ID for invoices/subscriptions |\n\n## Returns\n\nReturns the updated Customer object. Raises an error if parameters are invalid.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/customers/cus_NffrFeUfNV2Hib \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  --data-urlencode email=\"alice@new.com\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"cus_NffrFeUfNV2Hib\",\n  \"object\": \"customer\",\n  \"name\": \"Jenny Rosen\",\n  \"email\": \"alice@new.com\",\n  \"phone\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"balance\": 0,\n  \"created\": 1680893993,\n  \"livemode\": false\n}\n```\n# Retrieve a Customer\n\n**GET** `/v1/customers/:id`\n\n## Parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `id` | string (path) | The ID of the customer to retrieve |\n\n## Returns\n\nReturns the Customer object for a valid identifier. If the customer was deleted, returns a subset of fields with `deleted: true`.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/customers/cus_NffrFeUfNV2Hib \\\n  -u \"<<YOUR_SECRET_KEY>>\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"cus_NffrFeUfNV2Hib\",\n  \"object\": \"customer\",\n  \"name\": \"Jenny Rosen\",\n  \"email\": \"jennyrosen@example.com\",\n  \"phone\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"address\": null,\n  \"balance\": 0,\n  \"created\": 1680893993,\n  \"livemode\": false,\n  \"default_source\": null,\n  \"delinquent\": false,\n  \"invoice_settings\": {\n    \"default_payment_method\": null,\n    \"custom_fields\": null,\n    \"footer\": null,\n    \"rendering_options\": null\n  }\n}\n```\n# List All Customers\n\n**GET** `/v1/customers`\n\nReturns a list of customers sorted by creation date, newest first.\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `email` | string | optional | Filter by exact email address (case-sensitive) |\n| `limit` | integer | optional | Number of results to return (1\u2013100, default 10) |\n| `starting_after` | string | optional | Customer ID cursor \u2014 fetch the next page after this ID |\n| `ending_before` | string | optional | Customer ID cursor \u2014 fetch the previous page before this ID |\n| `created.gt` | integer | optional | Return customers created after this Unix timestamp (exclusive) |\n| `created.gte` | integer | optional | Return customers created at or after this Unix timestamp (inclusive) |\n| `created.lt` | integer | optional | Return customers created before this Unix timestamp (exclusive) |\n| `created.lte` | integer | optional | Return customers created at or before this Unix timestamp (inclusive) |\n\n## Returns\n\nA dictionary with a `data` array of Customer objects. Includes `has_more` to indicate if another page exists.\n\n## Example Request\n\n```curl\ncurl -G https://api.stripe.com/v1/customers \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d limit=3\n```\n\n## Example Response\n\n```json\n{\n  \"object\": \"list\",\n  \"url\": \"/v1/customers\",\n  \"has_more\": false,\n  \"data\": [\n    {\n      \"id\": \"cus_NffrFeUfNV2Hib\",\n      \"object\": \"customer\",\n      \"name\": \"Jenny Rosen\",\n      \"email\": \"jennyrosen@example.com\",\n      \"phone\": null,\n      \"balance\": 0,\n      \"created\": 1680893993,\n      \"livemode\": false,\n      \"metadata\": {}\n    }\n  ]\n}\n```",
+    "enriched_summary": "Covers v2 update, retrieve, and list customers endpoints with parameters, return values, and curl examples.",
+    "enriched_keywords": [
+      "update customer v2",
+      "retrieve customer",
+      "list customers v2",
+      "payment method",
+      "pagination"
+    ],
+    "enriched_questions": [
+      "How do you update a customer in v2?",
+      "What does a v2 retrieve customer response include?",
+      "How do you list customers in v2?",
+      "What fields can be updated on a v2 customer?",
+      "How does the update customer endpoint differ between v1 and v2?"
+    ]
+  },
+  {
+    "chunk_id": "8f36654a-060d-400f-950a-7583d2ccca6d",
+    "metadata": {
+      "api_class": "PAYMENT_INTENTS",
+      "version": "v1"
+    },
+    "content": "PaymentIntents\n==============\n\nA PaymentIntent guides you through collecting a payment from a customer. Create exactly one per order or session.\n\n.. note::\n\n   In v1, ``automatic_payment_methods`` is not supported. Payment method types must be explicitly specified via ``payment_method_types``. The ``confirmation_method`` field is also not available; all confirmations are manual by default.\n\nEndpoints\n---------\n\n.. list-table::\n   :header-rows: 1\n   :widths: 15 50 35\n\n   * - Method\n     - Endpoint\n     - Description\n   * - POST\n     - ``/v1/payment_intents``\n     - Create a PaymentIntent\n   * - POST\n     - ``/v1/payment_intents/:id/confirm``\n     - Confirm a PaymentIntent\n   * - GET\n     - ``/v1/payment_intents/:id``\n     - Retrieve a PaymentIntent\n   * - GET\n     - ``/v1/payment_intents``\n     - List all PaymentIntents\n   * - POST\n     - ``/v1/payment_intents/:id/cancel``\n     - Cancel a PaymentIntent\n\n\nThe PaymentIntent Object\n------------------------\n\nStatus Lifecycle\n~~~~~~~~~~~~~~~~\n\n``requires_payment_method`` \u2192 ``requires_confirmation`` \u2192 ``requires_action`` \u2192 ``processing`` \u2192 ``succeeded``\n\nOr: \u2192 ``requires_capture`` (if ``capture_method=manual``) | ``canceled``\n\nKey Fields\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 45\n\n   * - Field\n     - Type\n     - Description\n   * - ``id``\n     - string\n     - Unique identifier (e.g. ``pi_3MtwBwLkdIwHu7ix28a3tqPa``)\n   * - ``object``\n     - string\n     - Always ``\"payment_intent\"``\n   * - ``amount``\n     - integer\n     - Amount in smallest currency unit (e.g. cents)\n   * - ``currency``\n     - string\n     - Three-letter ISO currency code (e.g. ``\"usd\"``)\n   * - ``status``\n     - enum\n     - Current status (see lifecycle above)\n   * - ``customer``\n     - string\n     - ID of the Customer this PaymentIntent belongs to\n   * - ``source``\n     - string\n     - ID of the Source or card token to charge\n   * - ``payment_method_types``\n     - array\n     - Explicit list of allowed payment method types (e.g. ``[\"card\"]``)\n   * - ``capture_method``\n     - enum\n     - ``automatic`` or ``manual``\n   * - ``amount_received``\n     - integer\n     - Amount successfully received, in smallest currency unit\n   * - ``amount_capturable``\n     - integer\n     - Amount that can still be captured (manual capture only)\n   * - ``client_secret``\n     - string\n     - Secret used client-side to confirm the PaymentIntent\n   * - ``latest_charge``\n     - string\n     - ID of the latest Charge created\n   * - ``last_payment_error``\n     - object\n     - Error from the last payment attempt, if any\n   * - ``next_action``\n     - object\n     - Actions required to complete the payment (e.g. 3D Secure redirect)\n   * - ``canceled_at``\n     - timestamp\n     - When the PaymentIntent was canceled\n   * - ``cancellation_reason``\n     - string\n     - Reason for cancellation\n   * - ``description``\n     - string\n     - Arbitrary description\n   * - ``metadata``\n     - object\n     - Key-value pairs for storing extra info\n   * - ``receipt_email``\n     - string\n     - Email to send receipt to after successful payment\n   * - ``statement_descriptor``\n     - string\n     - Text on customer's bank statement (max 22 chars)\n   * - ``on_behalf_of``\n     - string\n     - Connected account ID on whose behalf the charge is made\n   * - ``transfer_data.destination``\n     - string\n     - Connected account to transfer funds to after success\n   * - ``application_fee_amount``\n     - integer\n     - Fee in cents to be collected for the platform\n   * - ``created``\n     - timestamp\n     - Unix timestamp of creation\n   * - ``livemode``\n     - boolean\n     - True if live mode, false if test mode\n\nExample Object\n~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 PaymentIntents API overview, status lifecycle, and the PaymentIntent object's key fields.",
+    "enriched_keywords": [
+      "PaymentIntent object",
+      "status lifecycle",
+      "payment_method_types",
+      "capture_method",
+      "source"
+    ],
+    "enriched_questions": [
+      "What are the possible statuses of a PaymentIntent in v1?",
+      "What fields does the v1 PaymentIntent object contain?",
+      "What endpoints are available for PaymentIntents?",
+      "How does capture_method affect a PaymentIntent?"
+    ]
+  },
+  {
+    "chunk_id": "9df56846-c9ce-46d0-b79d-c23870cb34f4",
+    "metadata": {
+      "api_class": "PAYMENT_INTENTS",
+      "version": "v1"
+    },
+    "content": ".. code-block:: json\n\n   {\n     \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n     \"object\": \"payment_intent\",\n     \"amount\": 2000,\n     \"currency\": \"usd\",\n     \"status\": \"requires_source\",\n     \"customer\": null,\n     \"source\": null,\n     \"payment_method_types\": [\"card\"],\n     \"capture_method\": \"automatic\",\n     \"amount_received\": 0,\n     \"amount_capturable\": 0,\n     \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n     \"latest_charge\": null,\n     \"last_payment_error\": null,\n     \"next_action\": null,\n     \"canceled_at\": null,\n     \"cancellation_reason\": null,\n     \"description\": null,\n     \"metadata\": {},\n     \"receipt_email\": null,\n     \"statement_descriptor\": null,\n     \"on_behalf_of\": null,\n     \"transfer_data\": null,\n     \"application_fee_amount\": null,\n     \"created\": 1680800504,\n     \"livemode\": false\n   }\n\n\nCreate a PaymentIntent\n----------------------\n\n**POST** ``/v1/payment_intents``\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 15 30\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``amount``\n     - integer\n     - **required**\n     - Amount in smallest currency unit (e.g. 2000 = $20.00 USD)\n   * - ``currency``\n     - enum\n     - **required**\n     - Three-letter ISO currency code (e.g. ``usd``)\n   * - ``payment_method_types``\n     - array\n     - **required**\n     - List of payment method types (e.g. ``[\"card\"]``). No default in v1\n   * - ``customer``\n     - string\n     - optional\n     - ID of the Customer to attach this PaymentIntent to\n   * - ``source``\n     - string\n     - optional\n     - ID of a Source or card token to attach\n   * - ``capture_method``\n     - enum\n     - optional\n     - ``automatic`` (default) charges immediately; ``manual`` requires a separate capture step\n   * - ``confirm``\n     - boolean\n     - optional\n     - If ``true``, confirm immediately upon creation\n   * - ``description``\n     - string\n     - optional\n     - Arbitrary description\n   * - ``metadata``\n     - object\n     - optional\n     - Key-value pairs for storing extra info\n   * - ``receipt_email``\n     - string\n     - optional\n     - Email to send receipt to after successful payment\n   * - ``statement_descriptor``\n     - string\n     - optional\n     - Text on customer's bank statement (max 22 chars)\n   * - ``on_behalf_of``\n     - string\n     - optional\n     - Connected account ID on whose behalf the charge is made\n   * - ``transfer_data.destination``\n     - string\n     - optional\n     - Connected account to transfer funds to after success\n   * - ``application_fee_amount``\n     - integer\n     - optional\n     - Fee in cents to collect for the platform (requires ``on_behalf_of``)\n   * - ``return_url``\n     - string\n     - optional\n     - URL to redirect to after actions (e.g. 3D Secure) are completed\n\nReturns\n~~~~~~~\n\nReturns a PaymentIntent object.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/payment_intents \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d amount=2000 \\\n     -d currency=usd \\\n     -d \"payment_method_types[0]\"=card\n\nExample Response\n~~~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 create PaymentIntent endpoint with required parameters, an example request, and the response structure.",
+    "enriched_keywords": [
+      "create PaymentIntent",
+      "payment_method_types required",
+      "amount",
+      "currency",
+      "transfer_data"
+    ],
+    "enriched_questions": [
+      "What parameters are required to create a PaymentIntent in v1?",
+      "How do you create a PaymentIntent with a card in v1?",
+      "What does the curl request look like for creating a v1 PaymentIntent?",
+      "How do you route funds to a connected account when creating a PaymentIntent?"
+    ]
+  },
+  {
+    "chunk_id": "4083b846-5240-487b-b150-8b8604ab416b",
+    "metadata": {
+      "version": "v1",
+      "api_class": "PAYMENT_INTENTS"
+    },
+    "content": ".. code-block:: json\n\n   {\n     \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n     \"object\": \"payment_intent\",\n     \"amount\": 2000,\n     \"currency\": \"usd\",\n     \"status\": \"requires_source\",\n     \"customer\": null,\n     \"source\": null,\n     \"payment_method_types\": [\"card\"],\n     \"capture_method\": \"automatic\",\n     \"amount_received\": 0,\n     \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n     \"latest_charge\": null,\n     \"next_action\": null,\n     \"description\": null,\n     \"metadata\": {},\n     \"created\": 1680800504,\n     \"livemode\": false\n   }\n\n\nConfirm a PaymentIntent\n-----------------------\n\n**POST** ``/v1/payment_intents/:id/confirm``\n\nConfirms that the customer intends to pay. Upon confirmation, the PaymentIntent will attempt to initiate a payment.\n\n- If additional auth is needed (e.g. 3D Secure), status moves to ``requires_action`` with ``next_action`` populated.\n- If payment fails, status moves to ``requires_source``.\n- If payment succeeds, status moves to ``succeeded`` (or ``requires_capture`` if ``capture_method=manual``).\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 30 20 15 35\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``source``\n     - string\n     - optional\n     - ID of the Source or card token to use for this confirmation\n   * - ``return_url``\n     - string\n     - optional\n     - URL to redirect to after any required actions (e.g. 3D Secure)\n   * - ``capture_method``\n     - enum\n     - optional\n     - Override capture method: ``automatic`` or ``manual``\n   * - ``receipt_email``\n     - string\n     - optional\n     - Email to send receipt to after successful payment\n\nReturns\n~~~~~~~\n\nReturns the resulting PaymentIntent after all possible transitions are applied.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/payment_intents/pi_3MtweELkdIwHu7ix0Dt0gF2H/confirm \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d source=tok_visa \\\n     --data-urlencode return_url=\"https://www.example.com\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"pi_3MtweELkdIwHu7ix0Dt0gF2H\",\n     \"object\": \"payment_intent\",\n     \"amount\": 2000,\n     \"currency\": \"usd\",\n     \"status\": \"succeeded\",\n     \"source\": \"src_1MtweELkdIwHu7ixxrsejPtG\",\n     \"payment_method_types\": [\"card\"],\n     \"capture_method\": \"automatic\",\n     \"amount_received\": 2000,\n     \"amount_capturable\": 0,\n     \"client_secret\": \"pi_3MtweELkdIwHu7ix0Dt0gF2H_secret_ALlpPMIZse0ac8YzPxkMkFgGC\",\n     \"latest_charge\": \"ch_3MtweELkdIwHu7ix05lnLAFd\",\n     \"next_action\": null,\n     \"metadata\": {},\n     \"created\": 1680802258,\n     \"livemode\": false\n   }\n\n\nRetrieve a PaymentIntent\n------------------------\n\n**GET** ``/v1/payment_intents/:id``\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 25 20 55\n\n   * - Parameter\n     - Type\n     - Description\n   * - ``id``\n     - string (path)\n     - The ID of the PaymentIntent to retrieve\n\nReturns\n~~~~~~~\n\nReturns a PaymentIntent if a valid identifier was provided.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/payment_intents/pi_3MtwBwLkdIwHu7ix28a3tqPa \\\n     -u \"<<YOUR_SECRET_KEY>>\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n     \"object\": \"payment_intent\",\n     \"amount\": 2000,\n     \"currency\": \"usd\",\n     \"status\": \"requires_source\",\n     \"source\": null,\n     \"payment_method_types\": [\"card\"],\n     \"capture_method\": \"automatic\",\n     \"amount_received\": 0,\n     \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n     \"latest_charge\": null,\n     \"canceled_at\": null,\n     \"description\": null,\n     \"metadata\": {},\n     \"created\": 1680800504,\n     \"livemode\": false\n   }\n\n\nList All PaymentIntents\n-----------------------\n\n**GET** ``/v1/payment_intents``\n\nParameters\n~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 confirm, retrieve PaymentIntent endpoints and cancel PaymentIntent with examples and status transitions.",
+    "enriched_keywords": [
+      "confirm PaymentIntent",
+      "retrieve PaymentIntent",
+      "3D Secure",
+      "requires_action",
+      "source token"
+    ],
+    "enriched_questions": [
+      "How do you confirm a PaymentIntent in v1?",
+      "What happens to the PaymentIntent status after confirmation?",
+      "What does the retrieve PaymentIntent response look like in v1?",
+      "What source or token do you pass to confirm a v1 PaymentIntent?"
+    ]
+  },
+  {
+    "chunk_id": "cccb52cd-362d-4cae-a34b-cc819dd257fc",
+    "metadata": {
+      "api_class": "PAYMENT_INTENTS",
+      "version": "v1"
+    },
+    "content": ".. list-table::\n   :header-rows: 1\n   :widths: 25 20 15 40\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``customer``\n     - string\n     - optional\n     - Only return PaymentIntents for this customer ID\n   * - ``limit``\n     - integer\n     - optional\n     - Number of results to return (1\u2013100, default 10)\n   * - ``starting_after``\n     - string\n     - optional\n     - PaymentIntent ID cursor \u2014 fetch the next page after this ID\n   * - ``ending_before``\n     - string\n     - optional\n     - PaymentIntent ID cursor \u2014 fetch the previous page before this ID\n   * - ``created.gt``\n     - integer\n     - optional\n     - Created after this Unix timestamp (exclusive)\n   * - ``created.gte``\n     - integer\n     - optional\n     - Created at or after this Unix timestamp (inclusive)\n   * - ``created.lt``\n     - integer\n     - optional\n     - Created before this Unix timestamp (exclusive)\n   * - ``created.lte``\n     - integer\n     - optional\n     - Created at or before this Unix timestamp (inclusive)\n\nReturns\n~~~~~~~\n\nA dictionary with a ``data`` array of PaymentIntent objects. Includes ``has_more`` for pagination.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl -G https://api.stripe.com/v1/payment_intents \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d limit=3\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"object\": \"list\",\n     \"url\": \"/v1/payment_intents\",\n     \"has_more\": false,\n     \"data\": [\n       {\n         \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n         \"object\": \"payment_intent\",\n         \"amount\": 2000,\n         \"currency\": \"usd\",\n         \"status\": \"requires_source\",\n         \"source\": null,\n         \"payment_method_types\": [\"card\"],\n         \"capture_method\": \"automatic\",\n         \"amount_received\": 0,\n         \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n         \"description\": null,\n         \"metadata\": {},\n         \"created\": 1680800504,\n         \"livemode\": false\n       }\n     ]\n   }\n\n\nCancel a PaymentIntent\n----------------------\n\n**POST** ``/v1/payment_intents/:id/cancel``\n\nCancels a PaymentIntent. Cancelable when status is: ``requires_source``, ``requires_capture``, ``requires_confirmation``, ``requires_action``, or (rarely) ``processing``.\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 30 20 15 35\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``id``\n     - string (path)\n     - **required**\n     - The ID of the PaymentIntent to cancel\n   * - ``cancellation_reason``\n     - string\n     - optional\n     - Reason: ``duplicate``, ``fraudulent``, ``requested_by_customer``, or ``abandoned``\n\nReturns\n~~~~~~~\n\nReturns the canceled PaymentIntent object. Returns an error if already canceled or not in a cancelable state.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl -X POST https://api.stripe.com/v1/payment_intents/pi_3MtwBwLkdIwHu7ix28a3tqPa/cancel \\\n     -u \"<<YOUR_SECRET_KEY>>\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n     \"object\": \"payment_intent\",\n     \"amount\": 2000,\n     \"currency\": \"usd\",\n     \"status\": \"canceled\",\n     \"source\": null,\n     \"payment_method_types\": [\"card\"],\n     \"amount_received\": 0,\n     \"canceled_at\": 1680801569,\n     \"cancellation_reason\": null,\n     \"metadata\": {},\n     \"created\": 1680800504,\n     \"livemode\": false\n   }",
+    "enriched_summary": "Covers the v1 list and cancel PaymentIntent endpoints with parameters, return values, and curl examples.",
+    "enriched_keywords": [
+      "list PaymentIntents",
+      "cancel PaymentIntent",
+      "cancellation_reason",
+      "pagination",
+      "customer filter"
+    ],
+    "enriched_questions": [
+      "How do you cancel a PaymentIntent in v1?",
+      "What statuses allow a PaymentIntent to be canceled?",
+      "How do you list PaymentIntents filtered by customer?",
+      "What does the cancel PaymentIntent response look like?"
+    ]
+  },
+  {
+    "chunk_id": "7cddef22-abbc-4d20-b02a-19d9c96753e9",
+    "metadata": {
+      "version": "v2",
+      "api_class": "PAYMENT_INTENTS"
+    },
+    "content": "# The PaymentIntent Object\n\nA PaymentIntent guides you through collecting a payment from a customer. Create one per order or session, then confirm it to initiate the charge.\n\n## Status Lifecycle\n\n`requires_payment_method` \u2192 `requires_confirmation` \u2192 `requires_action` \u2192 `processing` \u2192 `succeeded`  \nOr: \u2192 `requires_capture` (if `capture_method=manual`) | `canceled`\n\n## Key Fields\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `id` | string | Unique identifier (e.g. `pi_3MtwBwLkdIwHu7ix28a3tqPa`) |\n| `object` | string | Always `\"payment_intent\"` |\n| `amount` | integer | Amount in smallest currency unit (e.g. cents). Min $0.50 USD |\n| `currency` | string | Three-letter ISO currency code (e.g. `\"usd\"`) |\n| `status` | enum | Current status (see lifecycle above) |\n| `customer` | string | ID of the Customer this PaymentIntent belongs to |\n| `payment_method` | string | ID of the PaymentMethod attached |\n| `payment_method_types` | array | List of allowed payment method types (e.g. `[\"card\"]`) |\n| `capture_method` | enum | `automatic` or `manual` |\n| `confirmation_method` | enum | `automatic` or `manual` |\n| `amount_received` | integer | Amount successfully received, in smallest currency unit |\n| `amount_capturable` | integer | Amount that can still be captured (manual capture only) |\n| `client_secret` | string | Secret used client-side to confirm the PaymentIntent |\n| `latest_charge` | string | ID of the latest Charge created |\n| `last_payment_error` | object | Error from the last payment attempt, if any |\n| `next_action` | object | Actions required to complete the payment (e.g. 3D Secure redirect) |\n| `canceled_at` | timestamp | When the PaymentIntent was canceled |\n| `cancellation_reason` | string | Reason for cancellation |\n| `description` | string | Arbitrary description |\n| `metadata` | object | Key-value pairs for storing extra info |\n| `receipt_email` | string | Email to send receipt to after successful payment |\n| `statement_descriptor` | string | Text on customer's bank statement (max 22 chars) |\n| `on_behalf_of` | string | Connected account ID on whose behalf the charge is made |\n| `transfer_data.destination` | string | Connected account to transfer funds to after success |\n| `transfer_group` | string | Groups related transfers together |\n| `application_fee_amount` | integer | Fee in cents to be collected for the platform |\n| `setup_future_usage` | enum | `on_session` or `off_session` \u2014 save payment method for future use |\n| `created` | timestamp | Unix timestamp of creation |\n| `livemode` | boolean | True if live mode, false if test mode |\n\n## Example Object\n\n```json\n{\n  \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n  \"object\": \"payment_intent\",\n  \"amount\": 2000,\n  \"currency\": \"usd\",\n  \"status\": \"requires_payment_method\",\n  \"customer\": null,\n  \"payment_method\": null,\n  \"payment_method_types\": [\"card\", \"link\"],\n  \"capture_method\": \"automatic\",\n  \"confirmation_method\": \"automatic\",\n  \"amount_received\": 0,\n  \"amount_capturable\": 0,\n  \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n  \"latest_charge\": null,\n  \"last_payment_error\": null,\n  \"next_action\": null,\n  \"canceled_at\": null,\n  \"cancellation_reason\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"receipt_email\": null,\n  \"statement_descriptor\": null,\n  \"on_behalf_of\": null,\n  \"transfer_data\": null,\n  \"transfer_group\": null,\n  \"application_fee_amount\": null,\n  \"setup_future_usage\": null,\n  \"created\": 1680800504,\n  \"livemode\": false\n}\n```\n# PaymentIntents\n\nA PaymentIntent guides you through collecting a payment from a customer. Create exactly one per order or session.",
+    "enriched_summary": "Covers the v2 PaymentIntent object with new fields like payment_method, confirmation_method, setup_future_usage, and transfer_group.",
+    "enriched_keywords": [
+      "PaymentIntent v2",
+      "payment_method",
+      "setup_future_usage",
+      "confirmation_method",
+      "automatic_payment_methods"
+    ],
+    "enriched_questions": [
+      "What new fields does the v2 PaymentIntent object introduce?",
+      "How does the v2 PaymentIntent object differ from v1?",
+      "What is the setup_future_usage field used for?",
+      "What is the PaymentIntent status lifecycle in v2?",
+      "How does payment_method replace source in v2 PaymentIntents?"
+    ]
+  },
+  {
+    "chunk_id": "ce9afc74-8202-4d3b-b1ad-a3b75280174f",
+    "metadata": {
+      "version": "v2",
+      "api_class": "PAYMENT_INTENTS"
+    },
+    "content": "## Endpoints\n\n| Method | Endpoint | Description |\n|--------|----------|-------------|\n| POST | `/v1/payment_intents` | Create a PaymentIntent |\n| POST | `/v1/payment_intents/:id/confirm` | Confirm a PaymentIntent |\n| GET | `/v1/payment_intents/:id` | Retrieve a PaymentIntent |\n| GET | `/v1/payment_intents` | List all PaymentIntents |\n| POST | `/v1/payment_intents/:id/cancel` | Cancel a PaymentIntent |\n# Create a PaymentIntent\n\n**POST** `/v1/payment_intents`\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `amount` | integer | **required** | Amount in smallest currency unit (e.g. 2000 = $20.00 USD) |\n| `currency` | enum | **required** | Three-letter ISO currency code (e.g. `usd`) |\n| `customer` | string | optional | ID of the Customer to attach this PaymentIntent to |\n| `payment_method` | string | optional | ID of the PaymentMethod to attach |\n| `payment_method_types` | array | optional | List of payment method types (e.g. `[\"card\"]`). Defaults to `[\"card\"]` |\n| `automatic_payment_methods.enabled` | boolean | optional | Automatically determine payment methods based on currency/customer. Recommended |\n| `capture_method` | enum | optional | `automatic` (default) charges immediately; `manual` requires a separate capture step |\n| `confirmation_method` | enum | optional | `automatic` (default) or `manual` |\n| `confirm` | boolean | optional | If `true`, confirm immediately upon creation |\n| `description` | string | optional | Arbitrary description |\n| `metadata` | object | optional | Key-value pairs for storing extra info |\n| `receipt_email` | string | optional | Email to send receipt to after successful payment |\n| `statement_descriptor` | string | optional | Text on customer's bank statement (max 22 chars) |\n| `statement_descriptor_suffix` | string | optional | Suffix appended to platform's statement descriptor |\n| `on_behalf_of` | string | optional | Connected account ID on whose behalf the charge is made |\n| `transfer_data.destination` | string | optional | Connected account to transfer funds to after success |\n| `transfer_group` | string | optional | Groups related transfers together |\n| `application_fee_amount` | integer | optional | Fee in cents to collect for the platform (requires `on_behalf_of`) |\n| `setup_future_usage` | enum | optional | `on_session` or `off_session` \u2014 save payment method for future use |\n| `return_url` | string | optional | URL to redirect to after actions (e.g. 3D Secure) are completed |\n| `off_session` | boolean | optional | Set to `true` if the customer is not in your checkout flow (e.g. recurring billing) |\n\n## Returns\n\nReturns a PaymentIntent object. If `confirm=true`, it will attempt to confirm immediately.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/payment_intents \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d amount=2000 \\\n  -d currency=usd \\\n  -d \"automatic_payment_methods[enabled]\"=true\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n  \"object\": \"payment_intent\",\n  \"amount\": 2000,\n  \"currency\": \"usd\",\n  \"status\": \"requires_payment_method\",\n  \"customer\": null,\n  \"payment_method\": null,\n  \"payment_method_types\": [\"card\", \"link\"],\n  \"capture_method\": \"automatic\",\n  \"confirmation_method\": \"automatic\",\n  \"amount_received\": 0,\n  \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n  \"latest_charge\": null,\n  \"next_action\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"created\": 1680800504,\n  \"livemode\": false\n}\n```\n# Confirm a PaymentIntent\n\n**POST** `/v1/payment_intents/:id/confirm`\n\nConfirms that the customer intends to pay. Upon confirmation, the PaymentIntent will attempt to initiate a payment.\n\n- If additional auth is needed (e.g. 3D Secure), status moves to `requires_action` with `next_action` populated.\n- If payment fails, status moves to `requires_payment_method`.\n- If payment succeeds, status moves to `succeeded` (or `requires_capture` if `capture_method=manual`).",
+    "enriched_summary": "Covers the v2 create PaymentIntent parameters including automatic_payment_methods and confirm endpoint behavior.",
+    "enriched_keywords": [
+      "create PaymentIntent v2",
+      "automatic_payment_methods",
+      "off_session",
+      "confirmation_method",
+      "setup_future_usage"
+    ],
+    "enriched_questions": [
+      "How do you create a PaymentIntent using automatic payment methods in v2?",
+      "What parameters are required to create a PaymentIntent in v2?",
+      "How does creating a PaymentIntent differ between v1 and v2?",
+      "What happens when you set confirm=true in v2?",
+      "How do you handle recurring billing with PaymentIntents in v2?"
+    ]
+  },
+  {
+    "chunk_id": "83e81f45-1e4a-4daa-be2f-5e3a6a56d60d",
+    "metadata": {
+      "version": "v2",
+      "api_class": "PAYMENT_INTENTS"
+    },
+    "content": "## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `payment_method` | string | optional | ID of the PaymentMethod to use for this confirmation |\n| `return_url` | string | optional | URL to redirect to after any required actions (e.g. 3D Secure) |\n| `capture_method` | enum | optional | Override capture method: `automatic` or `manual` |\n| `receipt_email` | string | optional | Email to send receipt to after successful payment |\n| `setup_future_usage` | enum | optional | `on_session` or `off_session` \u2014 save payment method for future use |\n| `off_session` | boolean | optional | Set `true` if customer is not present in the checkout flow |\n\n## Returns\n\nReturns the resulting PaymentIntent after all possible transitions are applied.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/payment_intents/pi_3MtweELkdIwHu7ix0Dt0gF2H/confirm \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d payment_method=pm_card_visa \\\n  --data-urlencode return_url=\"https://www.example.com\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"pi_3MtweELkdIwHu7ix0Dt0gF2H\",\n  \"object\": \"payment_intent\",\n  \"amount\": 2000,\n  \"currency\": \"usd\",\n  \"status\": \"succeeded\",\n  \"customer\": null,\n  \"payment_method\": \"pm_1MtweELkdIwHu7ixxrsejPtG\",\n  \"payment_method_types\": [\"card\", \"link\"],\n  \"capture_method\": \"automatic\",\n  \"amount_received\": 2000,\n  \"amount_capturable\": 0,\n  \"client_secret\": \"pi_3MtweELkdIwHu7ix0Dt0gF2H_secret_ALlpPMIZse0ac8YzPxkMkFgGC\",\n  \"latest_charge\": \"ch_3MtweELkdIwHu7ix05lnLAFd\",\n  \"next_action\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"created\": 1680802258,\n  \"livemode\": false\n}\n```\n# Retrieve a PaymentIntent\n\n**GET** `/v1/payment_intents/:id`\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `id` | string (path) | **required** | The ID of the PaymentIntent to retrieve |\n| `client_secret` | string | required if using publishable key | The PaymentIntent's client secret (only needed for client-side retrieval) |\n\n## Returns\n\nReturns a PaymentIntent if a valid identifier was provided.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/payment_intents/pi_3MtwBwLkdIwHu7ix28a3tqPa \\\n  -u \"<<YOUR_SECRET_KEY>>\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n  \"object\": \"payment_intent\",\n  \"amount\": 2000,\n  \"currency\": \"usd\",\n  \"status\": \"requires_payment_method\",\n  \"customer\": null,\n  \"payment_method\": null,\n  \"payment_method_types\": [\"card\", \"link\"],\n  \"capture_method\": \"automatic\",\n  \"amount_received\": 0,\n  \"amount_capturable\": 0,\n  \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n  \"latest_charge\": null,\n  \"next_action\": null,\n  \"canceled_at\": null,\n  \"cancellation_reason\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"receipt_email\": null,\n  \"statement_descriptor\": null,\n  \"created\": 1680800504,\n  \"livemode\": false\n}\n```\n# List All PaymentIntents\n\n**GET** `/v1/payment_intents`\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `customer` | string | optional | Only return PaymentIntents for this customer ID |\n| `limit` | integer | optional | Number of results to return (1\u2013100, default 10) |\n| `starting_after` | string | optional | PaymentIntent ID cursor \u2014 fetch the next page after this ID |\n| `ending_before` | string | optional | PaymentIntent ID cursor \u2014 fetch the previous page before this ID |\n| `created.gt` | integer | optional | Return PaymentIntents created after this Unix timestamp (exclusive) |\n| `created.gte` | integer | optional | Return PaymentIntents created at or after this Unix timestamp (inclusive) |\n| `created.lt` | integer | optional | Return PaymentIntents created before this Unix timestamp (exclusive) |\n| `created.lte` | integer | optional | Return PaymentIntents created at or before this Unix timestamp (inclusive) |",
+    "enriched_summary": "Covers v2 confirm, retrieve, and list PaymentIntents endpoints with parameters, curl examples, and sample responses.",
+    "enriched_keywords": [
+      "confirm PaymentIntent v2",
+      "retrieve PaymentIntent",
+      "list PaymentIntents",
+      "payment_method id",
+      "client_secret"
+    ],
+    "enriched_questions": [
+      "How do you confirm a PaymentIntent using a PaymentMethod in v2?",
+      "What does a v2 retrieve PaymentIntent response include?",
+      "How does confirming a PaymentIntent differ between v1 and v2?",
+      "How do you list PaymentIntents in v2?",
+      "What is the client_secret used for when retrieving a PaymentIntent?"
+    ]
+  },
+  {
+    "chunk_id": "a823f4ee-0ba7-4101-9542-242b589da845",
+    "metadata": {
+      "api_class": "PAYMENT_INTENTS",
+      "version": "v2"
+    },
+    "content": "## Returns\n\nA dictionary with a `data` array of PaymentIntent objects. Includes `has_more` for pagination.\n\n## Example Request\n\n```curl\ncurl -G https://api.stripe.com/v1/payment_intents \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d limit=3\n```\n\n## Example Response\n\n```json\n{\n  \"object\": \"list\",\n  \"url\": \"/v1/payment_intents\",\n  \"has_more\": false,\n  \"data\": [\n    {\n      \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n      \"object\": \"payment_intent\",\n      \"amount\": 2000,\n      \"currency\": \"usd\",\n      \"status\": \"requires_payment_method\",\n      \"customer\": null,\n      \"payment_method\": null,\n      \"payment_method_types\": [\"card\", \"link\"],\n      \"capture_method\": \"automatic\",\n      \"amount_received\": 0,\n      \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n      \"latest_charge\": null,\n      \"description\": null,\n      \"metadata\": {},\n      \"created\": 1680800504,\n      \"livemode\": false\n    }\n  ]\n}\n```\n# Cancel a PaymentIntent\n\n**POST** `/v1/payment_intents/:id/cancel`\n\nCancels a PaymentIntent. Cancelable when status is: `requires_payment_method`, `requires_capture`, `requires_confirmation`, `requires_action`, or (rarely) `processing`.\n\nAfter cancellation, no further charges are made. For PaymentIntents with status `requires_capture`, the remaining `amount_capturable` is automatically refunded.\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `id` | string (path) | **required** | The ID of the PaymentIntent to cancel |\n| `cancellation_reason` | string | optional | Reason for canceling: `duplicate`, `fraudulent`, `requested_by_customer`, or `abandoned` |\n\n## Returns\n\nReturns the canceled PaymentIntent object. Returns an error if already canceled or not in a cancelable state.\n\n## Example Request\n\n```curl\ncurl -X POST https://api.stripe.com/v1/payment_intents/pi_3MtwBwLkdIwHu7ix28a3tqPa/cancel \\\n  -u \"<<YOUR_SECRET_KEY>>\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa\",\n  \"object\": \"payment_intent\",\n  \"amount\": 2000,\n  \"currency\": \"usd\",\n  \"status\": \"canceled\",\n  \"customer\": null,\n  \"payment_method\": null,\n  \"payment_method_types\": [\"card\", \"link\"],\n  \"capture_method\": \"automatic\",\n  \"amount_received\": 0,\n  \"amount_capturable\": 0,\n  \"client_secret\": \"pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_YrKJUKribcBjcG8HVhfZluoGH\",\n  \"canceled_at\": 1680801569,\n  \"cancellation_reason\": null,\n  \"latest_charge\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"created\": 1680800504,\n  \"livemode\": false\n}\n```",
+    "enriched_summary": "Covers the v2 list and cancel PaymentIntent endpoints with parameters, response structure, and refund behavior on cancellation.",
+    "enriched_keywords": [
+      "cancel PaymentIntent v2",
+      "list PaymentIntents",
+      "amount_capturable refund",
+      "cancellation_reason",
+      "pagination"
+    ],
+    "enriched_questions": [
+      "How do you cancel a PaymentIntent in v2?",
+      "What happens to amount_capturable when a PaymentIntent is canceled in v2?",
+      "How does canceling a PaymentIntent differ between v1 and v2?",
+      "What statuses allow cancellation of a v2 PaymentIntent?"
+    ]
+  },
+  {
+    "chunk_id": "981e7c1e-a041-453e-baec-8ffceff64e91",
+    "metadata": {
+      "api_class": "PRICES",
+      "version": "v1"
+    },
+    "content": "======\nPrices\n======\n\nPrices define the unit cost, currency, and (optional) billing cycle for products.\n\n----------------\nThe Price Object\n----------------\n\n* **id** (string): Unique identifier for the object.\n* **object** (string): Always has the value ``price``.\n* **is_active** (boolean): Whether the price can be used for new purchases.\n* **currency_code** (enum): Three-letter ISO currency code.\n* **product_reference_id** (string): The ID of the product this price is associated with.\n* **billing_cycle** (object, nullable): The recurring components of a price.\n* **price_in_cents** (integer, nullable): The unit amount in cents to be charged.\n\n---------\nEndpoints\n---------\n\nCreate a price\n--------------\n**POST /api/v1.0/prices**\n\n**Parameters:**\n\n* **currency_code** (enum, required): Three-letter ISO currency code.\n* **price_in_cents** (integer, required): A positive integer in cents.\n* **product_reference_id** (string, required): The ID of the Product that this Price will belong to.\n* **billing_cycle** (object, optional): The recurring components of a price.\n\nRetrieve a price\n----------------\n**GET /api/v1.0/prices/:id**\n\n**Example Response:**\n\n.. code-block:: json\n\n   {\n     \"status\": \"success\",\n     \"api_version\": \"1.0\",\n     \"data\": {\n       \"id\": \"price_12345\",\n       \"object\": \"price\",\n       \"is_active\": true,\n       \"currency_code\": \"usd\",\n       \"price_in_cents\": 1000,\n       \"product_reference_id\": \"prod_12345\",\n       \"billing_cycle\": null\n     }\n   }\n\nList all prices\n---------------\n**GET /api/v1.0/prices**\n\n**Parameters:**\n\n* **is_active** (boolean, optional): Only return prices that are active or inactive.\n* **product_reference_id** (string, optional): Only return prices for the given product.\n* **max_results** (integer, optional): A limit on the number of objects to be returned.",
+    "enriched_summary": "Covers the v1 Prices API with the Price object fields and create, retrieve, list endpoints using legacy field naming.",
+    "enriched_keywords": [
+      "Price object v1",
+      "price_in_cents",
+      "billing_cycle",
+      "product_reference_id",
+      "is_active"
+    ],
+    "enriched_questions": [
+      "What fields does the v1 Price object contain?",
+      "How do you create a price in v1?",
+      "How do you list prices for a specific product in v1?",
+      "What is the v1 endpoint structure for the Prices API?"
+    ]
+  },
+  {
+    "chunk_id": "3ff1969b-1e22-45e4-9bb3-4b116dd13d81",
+    "metadata": {
+      "version": "v2",
+      "api_class": "PRICES"
+    },
+    "content": "# Prices\n\nPrices define the unit cost, currency, and (optional) billing cycle for both recurring and one-time purchases of products. Different physical goods or levels of service should be represented by products, and pricing options should be represented by prices.\n\n## The Price Object\n\n- `id` (string): Unique identifier for the object.\n- `object` (string): String representing the object\u2019s type. Always has the value `price`.\n- `active` (boolean): Whether the price can be used for new purchases.\n- `created` (timestamp): Time at which the object was created.\n- `currency` (enum): Three-letter ISO currency code, in lowercase.\n- `lookup_key` (string, nullable): A lookup key used to retrieve prices dynamically from a static string.\n- `metadata` (object): Set of key-value pairs that you can attach to an object.\n- `product` (string): The ID of the product this price is associated with.\n- `recurring` (object, nullable): The recurring components of a price such as `interval` and `usage_type`.\n  - `recurring.interval` (enum): The frequency at which a subscription is billed. One of `day`, `week`, `month` or `year`.\n  - `recurring.interval_count` (integer): The number of intervals between subscription billings.\n- `type` (enum): One of `one_time` or `recurring` depending on whether the price is for a one-time purchase or a recurring (subscription) purchase.\n- `unit_amount` (integer, nullable): The unit amount in cents to be charged.\n\n## Endpoints\n\n### Create a price\n\n**POST /v1/prices**\n\nCreates a new Price for an existing Product. The Price can be recurring or one-time.\n\n**Parameters:**\n\n- `currency` (enum, required): Three-letter ISO currency code, in lowercase.\n- `unit_amount` (integer, required conditionally): A positive integer in cents (or 0 for a free price) representing how much to charge.\n- `product` (string, required unless product_data is provided): The ID of the Product that this Price will belong to.\n- `product_data` (object, required unless product is provided): These fields can be used to create a new product that this price will belong to.\n  - `product_data.name` (string, required): The product\u2019s name, meant to be displayable to the customer.\n- `recurring` (object, optional): The recurring components of a price such as `interval` and `usage_type`.\n  - `recurring.interval` (enum, required): Specifies billing frequency. Either `day`, `week`, `month` or `year`.\n- `active` (boolean, optional): Whether the price can be used for new purchases.\n- `lookup_key` (string, optional): A lookup key used to retrieve prices dynamically from a static string.\n- `metadata` (object, optional): Set of key-value pairs that you can attach to an object.\n\n### Retrieve a price\n\n**GET /v1/prices/:id**\n\nRetrieves the price with the given ID.\n\n### List all prices\n\n**GET /v1/prices**\n\nReturns a list of your active prices.\n\n**Parameters:**\n\n- `active` (boolean, optional): Only return prices that are active or inactive (e.g., pass `false` to list all inactive prices).\n- `currency` (enum, optional): Only return prices for the given currency.\n- `product` (string, optional): Only return prices for the given product.\n- `type` (enum, optional): Only return prices of type `recurring` or `one_time`.\n- `limit` (integer, optional): A limit on the number of objects to be returned. Limit can range between 1 and 100.\n- `ending_before` (string, optional): A cursor for use in pagination. `ending_before` is an object ID that defines your place in the list.\n- `starting_after` (string, optional): A cursor for use in pagination. `starting_after` is an object ID that defines your place in the list.",
+    "enriched_summary": "Covers the v2 Prices API with the updated Price object fields and create, retrieve, list endpoints including recurring and one-time pricing.",
+    "enriched_keywords": [
+      "Price object v2",
+      "recurring interval",
+      "unit_amount",
+      "lookup_key",
+      "one_time vs recurring"
+    ],
+    "enriched_questions": [
+      "What fields does the v2 Price object include?",
+      "How do you create a recurring price in v2?",
+      "What is the difference between the v1 and v2 Price object?",
+      "How do you filter prices by type in v2?",
+      "How do you attach a price to a product in v2?"
+    ]
+  },
+  {
+    "chunk_id": "ef8f049b-7b53-4c25-9937-f9be8b28fd46",
+    "metadata": {
+      "api_class": "PRODUCTS",
+      "version": "v1"
+    },
+    "content": "========\nProducts\n========\n\nProducts describe the specific goods or services you offer to your customers. \n\n------------------\nThe Product Object\n------------------\n\n* **id** (string): Unique identifier for the object.\n* **object** (string): Always has the value ``product``.\n* **is_active** (boolean): Whether the product is currently available for purchase.\n* **created_at** (timestamp): Time at which the object was created.\n* **product_name** (string): The product\u2019s name.\n* **description_text** (string, nullable): The product\u2019s description.\n\n---------\nEndpoints\n---------\n\nCreate a product\n----------------\n**POST /api/v1.0/products**\n\n**Parameters:**\n\n* **product_name** (string, required): The product\u2019s name.\n* **is_active** (boolean, optional): Whether the product is currently available. Defaults to ``true``.\n* **description_text** (string, optional): The product\u2019s description.\n\nRetrieve a product\n------------------\n**GET /api/v1.0/products/:id**\n\n**Example Response:**\n\n.. code-block:: json\n\n   {\n     \"status\": \"success\",\n     \"api_version\": \"1.0\",\n     \"data\": {\n       \"id\": \"prod_12345\",\n       \"object\": \"product\",\n       \"is_active\": true,\n       \"product_name\": \"Gold Plan\",\n       \"description_text\": \"Premium access\"\n     }\n   }\n\nList all products\n-----------------\n**GET /api/v1.0/products**\n\n**Parameters:**\n\n* **is_active** (boolean, optional): Only return products that are active or inactive.\n* **max_results** (integer, optional): A limit on the number of objects to be returned.\n* **page_cursor** (string, optional): A cursor for use in pagination.",
+    "enriched_summary": "Covers the v1 Products API with the Product object fields and create, retrieve, list endpoints using legacy naming.",
+    "enriched_keywords": [
+      "Product object v1",
+      "product_name",
+      "is_active",
+      "description_text",
+      "list products"
+    ],
+    "enriched_questions": [
+      "What fields does the v1 Product object contain?",
+      "How do you create a product in v1?",
+      "What is the v1 endpoint for listing products?",
+      "How do you filter active products in v1?"
+    ]
+  },
+  {
+    "chunk_id": "d62d5df0-f969-4503-9736-7b55ef019226",
+    "metadata": {
+      "api_class": "PRODUCTS",
+      "version": "v2"
+    },
+    "content": "# Products\n\nProducts describe the specific goods or services you offer to your customers. They can be used in conjunction with Prices to configure pricing in Payment Links, Checkout, and Subscriptions.\n\n## The Product Object\n\n- `id` (string): Unique identifier for the object.\n- `object` (string): String representing the object\u2019s type. Always has the value `product`.\n- `active` (boolean): Whether the product is currently available for purchase.\n- `created` (timestamp): Time at which the object was created. Measured in seconds since the Unix epoch.\n- `default_price` (string, nullable): The ID of the Price object that is the default price for this product.\n- `description` (string, nullable): The product\u2019s description, meant to be displayable to the customer.\n- `livemode` (boolean): If the object exists in live mode, the value is `true`. If the object exists in test mode, the value is `false`.\n- `metadata` (object): Set of key-value pairs that you can attach to an object.\n- `name` (string): The product\u2019s name, meant to be displayable to the customer.\n- `shippable` (boolean, nullable): Whether this product is shipped (i.e., physical goods).\n- `statement_descriptor` (string, nullable): Extra information about a product which will appear on your customer\u2019s credit card statement. Only used for subscription payments.\n- `updated` (timestamp): Time at which the object was last updated.",
+    "enriched_summary": "Covers the v2 Product object with updated fields like active, default_price, metadata, and livemode.",
+    "enriched_keywords": [
+      "Product object v2",
+      "default_price",
+      "metadata",
+      "shippable",
+      "statement_descriptor"
+    ],
+    "enriched_questions": [
+      "What fields does the v2 Product object include?",
+      "What is the difference between v1 and v2 Product objects?",
+      "What is the default_price field on a v2 Product?",
+      "How does livemode work on a Product object?"
+    ]
+  },
+  {
+    "chunk_id": "64b09ec5-5158-42a9-b3f3-fa1723adbf55",
+    "metadata": {
+      "api_class": "PRODUCTS",
+      "version": "v2"
+    },
+    "content": "## Endpoints\n\n### Create a product\n\n**POST /v1/products**\n\nCreates a new product object.\n\n**Parameters:**\n\n- `name` (string, required): The product\u2019s name, meant to be displayable to the customer.\n- `active` (boolean, optional): Whether the product is currently available for purchase. Defaults to `true`.\n- `description` (string, optional): The product\u2019s description, meant to be displayable to the customer.\n- `default_price_data` (object, optional): Data used to generate a new Price object. This Price will be set as the default price for this product.\n  - `default_price_data.currency` (enum, required): Three-letter ISO currency code, in lowercase.\n  - `default_price_data.unit_amount` (integer, required conditionally): A positive integer in cents (or 0 for a free price) representing how much to charge.\n  - `default_price_data.recurring` (object, optional): The recurring components of a price such as `interval` and `interval_count`.\n    - `default_price_data.recurring.interval` (enum, required): Specifies billing frequency. Either `day`, `week`, `month` or `year`.\n- `metadata` (object, optional): Set of key-value pairs that you can attach to an object.\n- `shippable` (boolean, optional): Whether this product is shipped (i.e., physical goods).\n- `statement_descriptor` (string, optional): An arbitrary string to be displayed on your customer\u2019s credit card or bank statement. Only used for subscription payments.\n\n### Retrieve a product\n\n**GET /v1/products/:id**\n\nRetrieves the details of an existing product. Supply the unique product ID from either a product creation request or the product list, and Stripe will return the corresponding product information.\n\n### List all products\n\n**GET /v1/products**\n\nReturns a list of your products. The products are returned sorted by creation date, with the most recently created products appearing first.\n\n**Parameters:**\n\n- `active` (boolean, optional): Only return products that are active or inactive (e.g., pass `false` to list all inactive products).\n- `ending_before` (string, optional): A cursor for use in pagination. `ending_before` is an object ID that defines your place in the list.\n- `ids` (array of strings, optional): Only return products with the given IDs.\n- `limit` (integer, optional): A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 10.\n- `shippable` (boolean, optional): Only return products that can be shipped (i.e., physical, not digital products).\n- `starting_after` (string, optional): A cursor for use in pagination. `starting_after` is an object ID that defines your place in the list.",
+    "enriched_summary": "Covers the v2 create, retrieve, and list Products endpoints with parameters including default_price_data and pagination.",
+    "enriched_keywords": [
+      "create product v2",
+      "default_price_data",
+      "list products",
+      "shippable filter",
+      "metadata"
+    ],
+    "enriched_questions": [
+      "How do you create a product with a default price in v2?",
+      "What parameters are available when listing products in v2?",
+      "How do you create a product in v2?",
+      "How does the v2 create product endpoint differ from v1?",
+      "How do you filter shippable products when listing in v2?"
+    ]
+  },
+  {
+    "chunk_id": "83034bef-d1bd-4d7c-b06b-6d18ca1a9964",
+    "metadata": {
+      "version": "v1",
+      "api_class": "REFUNDS"
+    },
+    "content": "=======\nRefunds\n=======\n\nRefund objects allow you to refund a previously created charge that isn\u2019t refunded yet.\n\n-----------------\nThe Refund Object\n-----------------\n\n* **id** (string): Unique identifier for the object.\n* **object** (string): Always has the value ``refund``.\n* **refund_amount_cents** (integer): Amount, in cents.\n* **charge_id** (string, nullable): ID of the charge that\u2019s refunded.\n* **transaction_id** (string, nullable): ID of the PaymentIntent that\u2019s refunded.\n* **refund_reason** (enum, nullable): Reason for the refund (``duplicate``, ``fraudulent``, ``requested_by_customer``).\n* **refund_status** (string, nullable): Status of the refund (``pending``, ``succeeded``, ``failed``).\n\n---------\nEndpoints\n---------\n\nCreate a refund\n---------------\n**POST /api/v1.0/refunds**\n\n**Parameters:**\n\n* **charge_id** (string, optional): The identifier of the charge to refund.\n* **transaction_id** (string, optional): The identifier of the PaymentIntent to refund.\n* **refund_amount_cents** (integer, optional): A positive integer representing how much of this charge to refund.\n* **refund_reason** (string, optional): String indicating the reason for the refund.\n\nRetrieve a refund\n-----------------\n**GET /api/v1.0/refunds/:id**\n\n**Example Response:**\n\n.. code-block:: json\n\n   {\n     \"status\": \"success\",\n     \"api_version\": \"1.0\",\n     \"data\": {\n       \"id\": \"re_12345\",\n       \"object\": \"refund\",\n       \"refund_amount_cents\": 1000,\n       \"charge_id\": \"ch_9876\",\n       \"transaction_id\": null,\n       \"refund_status\": \"succeeded\"\n     }\n   }\n\nList all refunds\n----------------\n**GET /api/v1.0/refunds**\n\n**Parameters:**\n\n* **charge_id** (string, optional): Only return refunds for the charge specified by this charge ID.\n* **transaction_id** (string, optional): Only return refunds for the PaymentIntent specified by this ID.\n* **max_results** (integer, optional): A limit on the number of objects to be returned.",
+    "enriched_summary": "Covers the v1 Refunds API with the Refund object fields and create, retrieve, list endpoints using legacy naming.",
+    "enriched_keywords": [
+      "Refund object v1",
+      "refund_amount_cents",
+      "charge_id",
+      "transaction_id",
+      "refund_status"
+    ],
+    "enriched_questions": [
+      "What fields does the v1 Refund object contain?",
+      "How do you create a refund in v1?",
+      "How do you list refunds for a specific charge in v1?",
+      "What is the v1 endpoint structure for the Refunds API?"
+    ]
+  },
+  {
+    "chunk_id": "d37c1f95-0498-47c4-bbb5-e8f3ceff1741",
+    "metadata": {
+      "version": "v2",
+      "api_class": "REFUNDS"
+    },
+    "content": "# Refunds\n\nRefund objects allow you to refund a previously created charge that isn\u2019t refunded yet. Funds are refunded to the credit or debit card that\u2019s initially charged.\n\n## The Refund Object\n\n- `id` (string): Unique identifier for the object.\n- `object` (string): String representing the object\u2019s type. Objects of the same type share the same value. Always has the value `refund`.\n- `amount` (integer): Amount, in cents.\n- `balance_transaction` (string, nullable): Balance transaction that describes the impact on your account balance.\n- `charge` (string, nullable): ID of the charge that\u2019s refunded.\n- `created` (timestamp): Time at which the object was created. Measured in seconds since the Unix epoch.\n- `currency` (enum): Three-letter ISO currency code, in lowercase.\n- `metadata` (object, nullable): Set of key-value pairs that you can attach to an object.\n- `payment_intent` (string, nullable): ID of the PaymentIntent that\u2019s refunded.\n- `reason` (enum, nullable): Reason for the refund, which is either user-provided (`duplicate`, `fraudulent`, or `requested_by_customer`) or generated by Stripe internally (`expired_uncaptured_charge`).\n- `status` (string, nullable): Status of the refund. This can be `pending`, `requires_action`, `succeeded`, `failed`, or `canceled`.\n\n## Endpoints\n\n### Create a refund\n\n**POST /v1/refunds**\n\nWhen you create a new refund, you must specify a Charge or a PaymentIntent object on which to create it. You can optionally refund only part of a charge. You can do so multiple times, until the entire charge has been refunded.\n\n**Parameters:**\n\n- `charge` (string, optional): The identifier of the charge to refund.\n- `payment_intent` (string, optional): The identifier of the PaymentIntent to refund.\n- `amount` (integer, optional): A positive integer in the smallest currency unit representing how much of this charge to refund. Can refund only up to the remaining, unrefunded amount of the charge.\n- `reason` (string, optional): String indicating the reason for the refund. If set, possible values are `duplicate`, `fraudulent`, and `requested_by_customer`.\n- `metadata` (object, optional): Set of key-value pairs that you can attach to an object.\n\n### Retrieve a refund\n\n**GET /v1/refunds/:id**\n\nRetrieves the details of an existing refund.\n\n### List all refunds\n\n**GET /v1/refunds**\n\nReturns a list of all refunds you created. We return the refunds in sorted order, with the most recent refunds appearing first.\n\n**Parameters:**\n\n- `charge` (string, optional): Only return refunds for the charge specified by this charge ID.\n- `payment_intent` (string, optional): Only return refunds for the PaymentIntent specified by this ID.\n- `limit` (integer, optional): A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 10.\n- `ending_before` (string, optional): A cursor for use in pagination. `ending_before` is an object ID that defines your place in the list.\n- `starting_after` (string, optional): A cursor for use in pagination. `starting_after` is an object ID that defines your place in the list.",
+    "enriched_summary": "Covers the v2 Refunds API with the updated Refund object and create, retrieve, list endpoints including metadata and balance_transaction.",
+    "enriched_keywords": [
+      "Refund object v2",
+      "balance_transaction",
+      "payment_intent refund",
+      "reason",
+      "partial refund"
+    ],
+    "enriched_questions": [
+      "What fields does the v2 Refund object include?",
+      "How do you issue a partial refund in v2?",
+      "How does the v2 Refund object differ from v1?",
+      "How do you create a refund against a PaymentIntent in v2?",
+      "What refund reasons are supported in v2?"
+    ]
+  },
+  {
+    "chunk_id": "534eb73d-75ed-48d5-9d75-7af4caa26a05",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v1"
+    },
+    "content": "Subscriptions\n=============\n\nSubscriptions allow you to charge a customer on a recurring basis.\n\n.. note::\n\n   In v1, subscriptions use ``plan`` instead of ``price`` to reference recurring billing configurations. The ``pause_collection`` feature is not available. ``default_payment_method`` is replaced by ``default_source``.\n\nEndpoints\n---------\n\n.. list-table::\n   :header-rows: 1\n   :widths: 15 45 40\n\n   * - Method\n     - Endpoint\n     - Description\n   * - POST\n     - ``/v1/subscriptions``\n     - Create a subscription\n   * - POST\n     - ``/v1/subscriptions/:id``\n     - Update a subscription\n   * - GET\n     - ``/v1/subscriptions/:id``\n     - Retrieve a subscription\n   * - GET\n     - ``/v1/subscriptions``\n     - List all subscriptions\n   * - DELETE\n     - ``/v1/subscriptions/:id``\n     - Cancel a subscription\n   * - POST\n     - ``/v1/subscriptions/:id/resume``\n     - Resume a paused subscription\n\n\nThe Subscription Object\n-----------------------\n\nStatus Lifecycle\n~~~~~~~~~~~~~~~~\n\n``trialing`` \u2192 ``active`` \u2192 ``past_due`` \u2192 ``canceled`` / ``unpaid``\n\nKey Fields\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 45\n\n   * - Field\n     - Type\n     - Description\n   * - ``id``\n     - string\n     - Unique identifier (e.g. ``sub_1MowQVLkdIwHu7ixeRlqHVzs``)\n   * - ``object``\n     - string\n     - Always ``\"subscription\"``\n   * - ``customer``\n     - string\n     - ID of the Customer being billed\n   * - ``status``\n     - enum\n     - ``trialing``, ``active``, ``past_due``, ``canceled``, or ``unpaid``\n   * - ``items.data``\n     - array\n     - List of subscription items, each with a ``plan`` and ``quantity``\n   * - ``items.data[].plan.id``\n     - string\n     - ID of the Plan for this item\n   * - ``items.data[].plan.amount``\n     - integer\n     - Plan amount in smallest currency unit\n   * - ``items.data[].plan.interval``\n     - string\n     - Billing interval: ``day``, ``week``, ``month``, or ``year``\n   * - ``items.data[].quantity``\n     - integer\n     - Quantity of the plan\n   * - ``currency``\n     - string\n     - Three-letter ISO currency code\n   * - ``collection_method``\n     - enum\n     - ``charge_automatically`` or ``send_invoice``\n   * - ``default_source``\n     - string\n     - ID of default Source for this subscription\n   * - ``latest_invoice``\n     - string\n     - ID of the most recent invoice\n   * - ``billing_cycle_anchor``\n     - timestamp\n     - Reference point for billing cycle\n   * - ``current_period_start``\n     - timestamp\n     - Start of the current billing period\n   * - ``current_period_end``\n     - timestamp\n     - End of the current billing period\n   * - ``cancel_at_period_end``\n     - boolean\n     - If ``true``, cancels at end of current period\n   * - ``cancel_at``\n     - timestamp\n     - Scheduled cancellation timestamp\n   * - ``canceled_at``\n     - timestamp\n     - When the subscription was canceled\n   * - ``ended_at``\n     - timestamp\n     - When the subscription ended\n   * - ``start_date``\n     - timestamp\n     - When the subscription started\n   * - ``trial_start``\n     - timestamp\n     - Start of trial period\n   * - ``trial_end``\n     - timestamp\n     - End of trial period\n   * - ``description``\n     - string\n     - Arbitrary description\n   * - ``metadata``\n     - object\n     - Key-value pairs for storing extra info\n   * - ``on_behalf_of``\n     - string\n     - Connected account ID on whose behalf charges are made\n   * - ``transfer_data.destination``\n     - string\n     - Connected account to transfer funds to\n   * - ``application_fee_percent``\n     - float\n     - Percentage of subscription amount to collect for the platform\n   * - ``created``\n     - timestamp\n     - Unix timestamp of creation\n   * - ``livemode``\n     - boolean\n     - True if live mode, false if test mode\n\nExample Object\n~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 Subscriptions API overview, the Subscription object fields using plan-based items, and available endpoints.",
+    "enriched_keywords": [
+      "Subscription object v1",
+      "plan",
+      "default_source",
+      "status lifecycle",
+      "billing_cycle_anchor"
+    ],
+    "enriched_questions": [
+      "What fields does the v1 Subscription object contain?",
+      "What endpoints are available for managing subscriptions in v1?",
+      "What is the subscription status lifecycle in v1?",
+      "How are subscription items structured in v1?"
+    ]
+  },
+  {
+    "chunk_id": "8044292d-145f-4d60-920b-3f0085ada125",
+    "metadata": {
+      "version": "v1",
+      "api_class": "SUBSCRIPTIONS"
+    },
+    "content": ".. code-block:: json\n\n   {\n     \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n     \"object\": \"subscription\",\n     \"customer\": \"cus_Na6dX7aXxi11N4\",\n     \"status\": \"active\",\n     \"currency\": \"usd\",\n     \"collection_method\": \"charge_automatically\",\n     \"default_source\": null,\n     \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n     \"billing_cycle_anchor\": 1679609767,\n     \"start_date\": 1679609767,\n     \"cancel_at_period_end\": false,\n     \"cancel_at\": null,\n     \"canceled_at\": null,\n     \"ended_at\": null,\n     \"trial_start\": null,\n     \"trial_end\": null,\n     \"description\": null,\n     \"metadata\": {},\n     \"on_behalf_of\": null,\n     \"transfer_data\": null,\n     \"created\": 1679609767,\n     \"livemode\": false,\n     \"items\": {\n       \"object\": \"list\",\n       \"data\": [\n         {\n           \"id\": \"si_Na6dzxczY5fwHx\",\n           \"object\": \"subscription_item\",\n           \"quantity\": 1,\n           \"plan\": {\n             \"id\": \"plan_Na6dGcTsmU0I4R\",\n             \"object\": \"plan\",\n             \"currency\": \"usd\",\n             \"amount\": 1000,\n             \"interval\": \"month\",\n             \"interval_count\": 1,\n             \"product\": \"prod_Na6dGcTsmU0I4R\",\n             \"active\": true\n           }\n         }\n       ],\n       \"has_more\": false\n     }\n   }\n\n\nCreate a Subscription\n---------------------\n\n**POST** ``/v1/subscriptions``\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 15 30\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``customer``\n     - string\n     - **required**\n     - ID of the Customer to subscribe\n   * - ``items``\n     - array\n     - **required**\n     - List of items. Each item needs a ``plan`` (Plan ID) and optional ``quantity`` (default 1)\n   * - ``items[].plan``\n     - string\n     - required per item\n     - ID of the Plan to subscribe to\n   * - ``items[].quantity``\n     - integer\n     - optional\n     - Quantity for this plan (default 1)\n   * - ``currency``\n     - enum\n     - optional\n     - Three-letter ISO currency code. Defaults to the plan's currency\n   * - ``default_source``\n     - string\n     - optional\n     - ID of default Source for this subscription\n   * - ``collection_method``\n     - enum\n     - optional\n     - ``charge_automatically`` (default) or ``send_invoice``\n   * - ``days_until_due``\n     - integer\n     - optional\n     - Days until invoice is due (required when ``collection_method=send_invoice``)\n   * - ``proration_behavior``\n     - enum\n     - optional\n     - ``create_prorations`` (default), ``none``, or ``always_invoice``\n   * - ``billing_cycle_anchor``\n     - timestamp\n     - optional\n     - Sets the billing cycle anchor to a specific Unix timestamp\n   * - ``cancel_at_period_end``\n     - boolean\n     - optional\n     - If ``true``, cancels at end of current period\n   * - ``cancel_at``\n     - timestamp\n     - optional\n     - Schedules cancellation at this Unix timestamp\n   * - ``trial_period_days``\n     - integer\n     - optional\n     - Number of trial days before billing starts\n   * - ``trial_end``\n     - timestamp or ``now``\n     - optional\n     - Ends trial at this Unix timestamp\n   * - ``description``\n     - string\n     - optional\n     - Arbitrary description\n   * - ``metadata``\n     - object\n     - optional\n     - Key-value pairs for storing extra info\n   * - ``on_behalf_of``\n     - string\n     - optional\n     - Connected account ID on whose behalf charges are made\n   * - ``transfer_data.destination``\n     - string\n     - optional\n     - Connected account to transfer funds to after each payment\n   * - ``application_fee_percent``\n     - float\n     - optional\n     - Percentage of amount to collect for the platform\n\nReturns\n~~~~~~~\n\nReturns the created Subscription object.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/subscriptions \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d customer=cus_Na6dX7aXxi11N4 \\\n     -d \"items[0][plan]\"=plan_Na6dGcTsmU0I4R\n\nExample Response\n~~~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 create subscription endpoint with plan-based parameters, trial support, and an example request and response.",
+    "enriched_keywords": [
+      "create subscription v1",
+      "plan id",
+      "trial_period_days",
+      "proration_behavior",
+      "application_fee_percent"
+    ],
+    "enriched_questions": [
+      "How do you create a subscription in v1?",
+      "How do you add a trial period to a v1 subscription?",
+      "What parameters are required to create a subscription in v1?",
+      "How do you set up platform fee collection with a v1 subscription?"
+    ]
+  },
+  {
+    "chunk_id": "23b9443f-6874-47f3-86a9-bb48ee77c63d",
+    "metadata": {
+      "version": "v1",
+      "api_class": "SUBSCRIPTIONS"
+    },
+    "content": ".. code-block:: json\n\n   {\n     \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n     \"object\": \"subscription\",\n     \"customer\": \"cus_Na6dX7aXxi11N4\",\n     \"status\": \"active\",\n     \"currency\": \"usd\",\n     \"collection_method\": \"charge_automatically\",\n     \"default_source\": null,\n     \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n     \"billing_cycle_anchor\": 1679609767,\n     \"cancel_at_period_end\": false,\n     \"metadata\": {},\n     \"created\": 1679609767,\n     \"livemode\": false,\n     \"items\": {\n       \"data\": [\n         {\n           \"id\": \"si_Na6dzxczY5fwHx\",\n           \"quantity\": 1,\n           \"plan\": {\n             \"id\": \"plan_Na6dGcTsmU0I4R\",\n             \"amount\": 1000,\n             \"currency\": \"usd\",\n             \"interval\": \"month\",\n             \"interval_count\": 1\n           }\n         }\n       ]\n     }\n   }\n\n\nUpdate a Subscription\n---------------------\n\n**POST** ``/v1/subscriptions/:id``\n\nUpdates an existing subscription. Used for upgrading/downgrading plans, changing quantities, and more. Stripe optionally prorates charges when plans or quantities change.\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 35 20 45\n\n   * - Parameter\n     - Type\n     - Description\n   * - ``items``\n     - array\n     - Updated list of items. Each can include ``id`` (existing item ID), ``plan``, ``quantity``, or ``deleted: true`` to remove\n   * - ``items[].id``\n     - string\n     - ID of existing subscription item to modify\n   * - ``items[].plan``\n     - string\n     - New Plan ID to switch to\n   * - ``items[].quantity``\n     - integer\n     - Updated quantity\n   * - ``items[].deleted``\n     - boolean\n     - Set ``true`` to remove this item\n   * - ``default_source``\n     - string\n     - ID of new default Source\n   * - ``collection_method``\n     - enum\n     - ``charge_automatically`` or ``send_invoice``\n   * - ``days_until_due``\n     - integer\n     - Days until invoice is due (for ``send_invoice``)\n   * - ``proration_behavior``\n     - enum\n     - ``create_prorations`` (default), ``none``, or ``always_invoice``\n   * - ``proration_date``\n     - timestamp\n     - Calculate prorations as if change happened at this time\n   * - ``billing_cycle_anchor``\n     - ``now`` or ``unchanged``\n     - Reset billing anchor to now, or keep unchanged\n   * - ``cancel_at_period_end``\n     - boolean\n     - Set ``true`` to cancel at end of period\n   * - ``cancel_at``\n     - timestamp or ``\"\"``\n     - Schedule/unschedule cancellation\n   * - ``trial_end``\n     - timestamp or ``now``\n     - End the trial at this time\n   * - ``description``\n     - string\n     - Arbitrary description\n   * - ``metadata``\n     - object\n     - Key-value pairs. Set key to ``\"\"`` to unset\n\nReturns\n~~~~~~~\n\nReturns the updated Subscription object.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/subscriptions/sub_1MowQVLkdIwHu7ixeRlqHVzs \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d \"metadata[order_id]\"=6735\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n     \"object\": \"subscription\",\n     \"customer\": \"cus_Na6dX7aXxi11N4\",\n     \"status\": \"active\",\n     \"currency\": \"usd\",\n     \"default_source\": null,\n     \"cancel_at_period_end\": false,\n     \"metadata\": { \"order_id\": \"6735\" },\n     \"created\": 1679609767,\n     \"livemode\": false,\n     \"items\": {\n       \"data\": [\n         {\n           \"id\": \"si_Na6dzxczY5fwHx\",\n           \"quantity\": 1,\n           \"plan\": {\n             \"id\": \"plan_Na6dGcTsmU0I4R\",\n             \"amount\": 1000,\n             \"currency\": \"usd\",\n             \"interval\": \"month\"\n           }\n         }\n       ]\n     }\n   }\n\n\nRetrieve a Subscription\n-----------------------\n\n**GET** ``/v1/subscriptions/:id``\n\nParameters\n~~~~~~~~~~",
+    "enriched_summary": "Covers v1 update, retrieve subscription endpoints with plan-based item modification and proration handling.",
+    "enriched_keywords": [
+      "update subscription v1",
+      "proration",
+      "plan switch",
+      "retrieve subscription",
+      "metadata update"
+    ],
+    "enriched_questions": [
+      "How do you update a subscription plan in v1?",
+      "How does proration work when updating a subscription in v1?",
+      "How do you retrieve a subscription in v1?",
+      "How do you change the quantity of a subscription item in v1?"
+    ]
+  },
+  {
+    "chunk_id": "4adf599a-5cb9-4edb-8e69-16fb60e0c7ae",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v1"
+    },
+    "content": ".. list-table::\n   :header-rows: 1\n   :widths: 20 20 60\n\n   * - Parameter\n     - Type\n     - Description\n   * - ``id``\n     - string (path)\n     - The ID of the subscription to retrieve\n\nReturns\n~~~~~~~\n\nReturns the Subscription object.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/subscriptions/sub_1MowQVLkdIwHu7ixeRlqHVzs \\\n     -u \"<<YOUR_SECRET_KEY>>\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n     \"object\": \"subscription\",\n     \"customer\": \"cus_Na6dX7aXxi11N4\",\n     \"status\": \"active\",\n     \"currency\": \"usd\",\n     \"collection_method\": \"charge_automatically\",\n     \"default_source\": null,\n     \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n     \"billing_cycle_anchor\": 1679609767,\n     \"cancel_at_period_end\": false,\n     \"trial_start\": null,\n     \"trial_end\": null,\n     \"metadata\": {},\n     \"created\": 1679609767,\n     \"livemode\": false,\n     \"items\": {\n       \"data\": [\n         {\n           \"id\": \"si_Na6dzxczY5fwHx\",\n           \"quantity\": 1,\n           \"plan\": {\n             \"id\": \"plan_Na6dGcTsmU0I4R\",\n             \"amount\": 1000,\n             \"currency\": \"usd\",\n             \"interval\": \"month\",\n             \"interval_count\": 1\n           }\n         }\n       ]\n     }\n   }\n\n\nList Subscriptions\n------------------\n\n**GET** ``/v1/subscriptions``\n\nBy default, returns subscriptions that have not been canceled. Use ``status=canceled`` to include canceled ones.\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 25 20 15 40\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``customer``\n     - string\n     - optional\n     - Filter by customer ID\n   * - ``plan``\n     - string\n     - optional\n     - Filter by Plan ID\n   * - ``status``\n     - enum\n     - optional\n     - Filter by status: ``active``, ``canceled``, ``past_due``, ``trialing``, ``unpaid``, or ``all``\n   * - ``collection_method``\n     - enum\n     - optional\n     - ``charge_automatically`` or ``send_invoice``\n   * - ``limit``\n     - integer\n     - optional\n     - Number of results (1\u2013100, default 10)\n   * - ``starting_after``\n     - string\n     - optional\n     - Subscription ID cursor \u2014 fetch next page after this ID\n   * - ``ending_before``\n     - string\n     - optional\n     - Subscription ID cursor \u2014 fetch previous page before this ID\n   * - ``created.gt``\n     - integer\n     - optional\n     - Created after this Unix timestamp (exclusive)\n   * - ``created.gte``\n     - integer\n     - optional\n     - Created at or after this Unix timestamp (inclusive)\n   * - ``created.lt``\n     - integer\n     - optional\n     - Created before this Unix timestamp (exclusive)\n   * - ``created.lte``\n     - integer\n     - optional\n     - Created at or before this Unix timestamp (inclusive)\n\nReturns\n~~~~~~~\n\nA dictionary with a ``data`` array of Subscription objects. Includes ``has_more`` for pagination.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl -G https://api.stripe.com/v1/subscriptions \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d limit=3\n\nExample Response\n~~~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers v1 list and cancel subscription endpoints, filtering parameters, and the resume subscription endpoint.",
+    "enriched_keywords": [
+      "list subscriptions",
+      "cancel subscription",
+      "resume subscription",
+      "status filter",
+      "plan filter"
+    ],
+    "enriched_questions": [
+      "How do you cancel a subscription immediately in v1?",
+      "How do you list subscriptions filtered by status in v1?",
+      "How do you resume a paused subscription in v1?",
+      "What does the cancel subscription response look like in v1?"
+    ]
+  },
+  {
+    "chunk_id": "96781f2e-76bb-4b8d-8519-b95d4c7cee90",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v1"
+    },
+    "content": ".. code-block:: bash\n\n   curl -G https://api.stripe.com/v1/subscriptions \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d limit=3\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"object\": \"list\",\n     \"url\": \"/v1/subscriptions\",\n     \"has_more\": false,\n     \"data\": [\n       {\n         \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n         \"object\": \"subscription\",\n         \"customer\": \"cus_Na6dX7aXxi11N4\",\n         \"status\": \"active\",\n         \"currency\": \"usd\",\n         \"default_source\": null,\n         \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n         \"cancel_at_period_end\": false,\n         \"metadata\": {},\n         \"created\": 1679609767,\n         \"livemode\": false,\n         \"items\": {\n           \"data\": [\n             {\n               \"id\": \"si_Na6dzxczY5fwHx\",\n               \"quantity\": 1,\n               \"plan\": {\n                 \"id\": \"plan_Na6dGcTsmU0I4R\",\n                 \"amount\": 1000,\n                 \"currency\": \"usd\",\n                 \"interval\": \"month\"\n               }\n             }\n           ]\n         }\n       }\n     ]\n   }\n\n\nCancel a Subscription\n---------------------\n\n**DELETE** ``/v1/subscriptions/:id``\n\nCancels a subscription immediately. The customer won't be charged again.\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 30 20 15 35\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``id``\n     - string (path)\n     - **required**\n     - The ID of the subscription to cancel\n   * - ``invoice_now``\n     - boolean\n     - optional\n     - If ``true``, generates a final invoice for un-invoiced usage. Default ``false``\n   * - ``prorate``\n     - boolean\n     - optional\n     - If ``true``, generates a proration credit for unused time. Default ``false``\n\nReturns\n~~~~~~~\n\nReturns the canceled Subscription object with ``status: \"canceled\"``.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl -X DELETE https://api.stripe.com/v1/subscriptions/sub_1MlPf9LkdIwHu7ixB6VIYRyX \\\n     -u \"<<YOUR_SECRET_KEY>>\"\n\nExample Response\n~~~~~~~~~~~~~~~~\n\n.. code-block:: json\n\n   {\n     \"id\": \"sub_1MlPf9LkdIwHu7ixB6VIYRyX\",\n     \"object\": \"subscription\",\n     \"customer\": \"cus_NWSaVkvdacCUi4\",\n     \"status\": \"canceled\",\n     \"currency\": \"usd\",\n     \"canceled_at\": 1678768842,\n     \"ended_at\": 1678768842,\n     \"cancel_at_period_end\": false,\n     \"metadata\": {},\n     \"created\": 1678768838,\n     \"livemode\": false,\n     \"items\": {\n       \"data\": [\n         {\n           \"id\": \"si_NWSaWTp80M123q\",\n           \"quantity\": 1,\n           \"plan\": {\n             \"id\": \"plan_NWSaMgipulx8IQ\",\n             \"amount\": 1099,\n             \"currency\": \"usd\",\n             \"interval\": \"month\"\n           }\n         }\n       ]\n     }\n   }\n\n\nResume a Subscription\n---------------------\n\n**POST** ``/v1/subscriptions/:id/resume``\n\nResumes a subscription that was canceled with ``cancel_at_period_end=true`` and has not yet reached the period end. Not applicable for immediately canceled subscriptions.\n\nParameters\n~~~~~~~~~~\n\n.. list-table::\n   :header-rows: 1\n   :widths: 30 20 15 35\n\n   * - Parameter\n     - Type\n     - Required\n     - Description\n   * - ``id``\n     - string (path)\n     - **required**\n     - The ID of the subscription to resume\n   * - ``billing_cycle_anchor``\n     - enum\n     - optional\n     - ``now`` (default) resets billing cycle; ``unchanged`` keeps existing anchor\n   * - ``proration_behavior``\n     - enum\n     - optional\n     - ``create_prorations`` (default), ``none``, or ``always_invoice``\n\nReturns\n~~~~~~~\n\nReturns the Subscription object with ``status: \"active\"``.\n\nExample Request\n~~~~~~~~~~~~~~~\n\n.. code-block:: bash\n\n   curl https://api.stripe.com/v1/subscriptions/sub_1MoGGtLkdIwHu7ixk5CfdiqC/resume \\\n     -u \"<<YOUR_SECRET_KEY>>\" \\\n     -d billing_cycle_anchor=now\n\nExample Response\n~~~~~~~~~~~~~~~~",
+    "enriched_summary": "Covers the v1 list subscriptions example response and the cancel and resume subscription endpoints with parameters and examples.",
+    "enriched_keywords": [
+      "cancel subscription v1",
+      "resume subscription",
+      "billing_cycle_anchor reset",
+      "invoice_now",
+      "prorate"
+    ],
+    "enriched_questions": [
+      "What does the list subscriptions response look like in v1?",
+      "What parameters can you pass when canceling a v1 subscription?",
+      "When can you resume a subscription in v1?",
+      "How does the billing_cycle_anchor behave when resuming a subscription?"
+    ]
+  },
+  {
+    "chunk_id": "99120646-c428-4abe-9749-acc05db491d3",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v1"
+    },
+    "content": ".. code-block:: json\n\n   {\n     \"id\": \"sub_1MoGGtLkdIwHu7ixk5CfdiqC\",\n     \"object\": \"subscription\",\n     \"customer\": \"cus_NZP5i1diUz55jp\",\n     \"status\": \"active\",\n     \"currency\": \"usd\",\n     \"billing_cycle_anchor\": 1679447726,\n     \"default_source\": null,\n     \"latest_invoice\": \"in_1MoGGwLkdIwHu7ixHSrelo8X\",\n     \"cancel_at_period_end\": false,\n     \"metadata\": {},\n     \"created\": 1679447723,\n     \"livemode\": false,\n     \"items\": {\n       \"data\": [\n         {\n           \"id\": \"si_NZP5BhUIuWzXDG\",\n           \"quantity\": 1,\n           \"plan\": {\n             \"id\": \"plan_NZP5rEATBlScM9\",\n             \"amount\": 1099,\n             \"currency\": \"usd\",\n             \"interval\": \"month\"\n           }\n         }\n       ]\n     }\n   }",
+    "enriched_summary": "Covers the v1 resume subscription example response showing restored active status with plan details.",
+    "enriched_keywords": [
+      "resume subscription response",
+      "active status",
+      "plan interval",
+      "billing_cycle_anchor",
+      "v1 example"
+    ],
+    "enriched_questions": [
+      "What does the resume subscription response look like in v1?",
+      "What status does a subscription return to after being resumed in v1?",
+      "What subscription fields are returned after a successful resume?"
+    ]
+  },
+  {
+    "chunk_id": "724e40b3-9157-4cdb-8885-2bd26239e1c2",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v2"
+    },
+    "content": "# The Subscription Object\n\nA Subscription charges a customer on a recurring basis using a Price attached to a Product.\n\n## Status Lifecycle\n\n`incomplete` \u2192 `active` \u2192 `past_due` \u2192 `canceled` / `unpaid`  \nOr: `trialing` \u2192 `active` | `paused` (when `pause_collection` is set)\n\n## Key Fields\n\n| Field | Type | Description |\n|-------|------|-------------|\n| `id` | string | Unique identifier (e.g. `sub_1MowQVLkdIwHu7ixeRlqHVzs`) |\n| `object` | string | Always `\"subscription\"` |\n| `customer` | string | ID of the Customer being billed |\n| `status` | enum | `incomplete`, `incomplete_expired`, `trialing`, `active`, `past_due`, `canceled`, `unpaid`, or `paused` |\n| `items.data` | array | List of subscription items, each with a `price` and `quantity` |\n| `items.data[].price.id` | string | ID of the Price for this item |\n| `items.data[].price.unit_amount` | integer | Price amount in smallest currency unit |\n| `items.data[].price.recurring.interval` | string | Billing interval: `day`, `week`, `month`, or `year` |\n| `items.data[].quantity` | integer | Quantity of the price |\n| `currency` | string | Three-letter ISO currency code |\n| `collection_method` | enum | `charge_automatically` or `send_invoice` |\n| `default_payment_method` | string | ID of default PaymentMethod for this subscription |\n| `latest_invoice` | string | ID of the most recent invoice |\n| `current_period_start` | timestamp | Start of the current billing period |\n| `current_period_end` | timestamp | End of the current billing period |\n| `billing_cycle_anchor` | timestamp | Reference point for billing cycle |\n| `cancel_at_period_end` | boolean | If `true`, cancels at end of current period |\n| `cancel_at` | timestamp | Scheduled cancellation timestamp |\n| `canceled_at` | timestamp | When the subscription was canceled |\n| `ended_at` | timestamp | When the subscription ended |\n| `start_date` | timestamp | When the subscription started |\n| `trial_start` | timestamp | Start of trial period |\n| `trial_end` | timestamp | End of trial period |\n| `pause_collection` | object | If set, collection is paused. Contains `behavior` and optional `resumes_at` |\n| `description` | string | Arbitrary description |\n| `metadata` | object | Key-value pairs for storing extra info |\n| `on_behalf_of` | string | Connected account ID on whose behalf charges are made |\n| `transfer_data.destination` | string | Connected account to transfer funds to |\n| `application_fee_percent` | float | Percentage of subscription amount to collect for the platform |\n| `proration_behavior` | enum | How prorations are handled on updates: `create_prorations`, `none`, or `always_invoice` |\n| `created` | timestamp | Unix timestamp of creation |\n| `livemode` | boolean | True if live mode, false if test mode |",
+    "enriched_summary": "Covers the v2 Subscription object with updated fields like price-based items, pause_collection, default_payment_method, and expanded status options.",
+    "enriched_keywords": [
+      "Subscription object v2",
+      "price-based items",
+      "pause_collection",
+      "default_payment_method",
+      "paused status"
+    ],
+    "enriched_questions": [
+      "What fields does the v2 Subscription object include?",
+      "How does the v2 Subscription object differ from v1?",
+      "What is the pause_collection field on a subscription?",
+      "What additional statuses exist in the v2 subscription lifecycle?",
+      "How are subscription items structured differently in v2 versus v1?"
+    ]
+  },
+  {
+    "chunk_id": "e4e28fa5-ceeb-4780-b5a5-b7ce62e66b15",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v2"
+    },
+    "content": "## Example Object\n\n```json\n{\n  \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n  \"object\": \"subscription\",\n  \"customer\": \"cus_Na6dX7aXxi11N4\",\n  \"status\": \"active\",\n  \"currency\": \"usd\",\n  \"collection_method\": \"charge_automatically\",\n  \"default_payment_method\": null,\n  \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n  \"billing_cycle_anchor\": 1679609767,\n  \"start_date\": 1679609767,\n  \"cancel_at_period_end\": false,\n  \"cancel_at\": null,\n  \"canceled_at\": null,\n  \"ended_at\": null,\n  \"trial_start\": null,\n  \"trial_end\": null,\n  \"pause_collection\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"on_behalf_of\": null,\n  \"transfer_data\": null,\n  \"created\": 1679609767,\n  \"livemode\": false,\n  \"items\": {\n    \"object\": \"list\",\n    \"data\": [\n      {\n        \"id\": \"si_Na6dzxczY5fwHx\",\n        \"object\": \"subscription_item\",\n        \"quantity\": 1,\n        \"price\": {\n          \"id\": \"price_1MowQULkdIwHu7ixraBm864M\",\n          \"object\": \"price\",\n          \"currency\": \"usd\",\n          \"unit_amount\": 1000,\n          \"type\": \"recurring\",\n          \"recurring\": {\n            \"interval\": \"month\",\n            \"interval_count\": 1\n          },\n          \"product\": \"prod_Na6dGcTsmU0I4R\",\n          \"active\": true\n        }\n      }\n    ],\n    \"has_more\": false\n  }\n}\n```\n# Subscriptions\n\nSubscriptions allow you to charge a customer on a recurring basis.\n\n## Endpoints\n\n| Method | Endpoint | Description |\n|--------|----------|-------------|\n| POST | `/v1/subscriptions` | Create a subscription |\n| POST | `/v1/subscriptions/:id` | Update a subscription |\n| GET | `/v1/subscriptions/:id` | Retrieve a subscription |\n| GET | `/v1/subscriptions` | List all subscriptions |\n| DELETE | `/v1/subscriptions/:id` | Cancel a subscription |\n| POST | `/v1/subscriptions/:id/resume` | Resume a paused subscription |\n# Create a Subscription\n\n**POST** `/v1/subscriptions`\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `customer` | string | **required** | ID of the Customer to subscribe |\n| `items` | array | **required** | List of items. Each item needs a `price` (Price ID) and optional `quantity` (default 1) |\n| `items[].price` | string | required per item | ID of the Price to subscribe to |\n| `items[].quantity` | integer | optional | Quantity for this price (default 1) |\n| `currency` | enum | optional | Three-letter ISO currency code. Defaults to the price's currency |\n| `default_payment_method` | string | optional | ID of default PaymentMethod for this subscription |\n| `collection_method` | enum | optional | `charge_automatically` (default) or `send_invoice` |\n| `days_until_due` | integer | optional | Days until invoice is due (required when `collection_method=send_invoice`) |\n| `payment_behavior` | enum | optional | `allow_incomplete`, `error_if_incomplete` (default), or `default_incomplete` |\n| `proration_behavior` | enum | optional | `create_prorations` (default), `none`, or `always_invoice` |\n| `billing_cycle_anchor` | timestamp | optional | Sets the billing cycle anchor to a specific Unix timestamp |\n| `cancel_at_period_end` | boolean | optional | If `true`, cancels at end of current period |\n| `cancel_at` | timestamp | optional | Schedules cancellation at this Unix timestamp |\n| `trial_period_days` | integer | optional | Number of trial days before billing starts |\n| `trial_end` | timestamp or `now` | optional | Ends trial at this Unix timestamp |\n| `description` | string | optional | Arbitrary description |\n| `metadata` | object | optional | Key-value pairs for storing extra info |\n| `on_behalf_of` | string | optional | Connected account ID on whose behalf charges are made |\n| `transfer_data.destination` | string | optional | Connected account to transfer funds to after each payment |\n| `application_fee_percent` | float | optional | Percentage of amount to collect for the platform |\n| `off_session` | boolean | optional | Set `true` if customer is not actively in your checkout flow |",
+    "enriched_summary": "Covers the v2 Subscription object example and the create subscription endpoint using price-based items.",
+    "enriched_keywords": [
+      "create subscription v2",
+      "price id",
+      "off_session",
+      "payment_behavior",
+      "trial support"
+    ],
+    "enriched_questions": [
+      "How do you create a subscription using a price in v2?",
+      "What parameters are required to create a v2 subscription?",
+      "How does creating a subscription differ between v1 and v2?",
+      "What is the payment_behavior parameter when creating a subscription?"
+    ]
+  },
+  {
+    "chunk_id": "eb0f5d89-ef6d-4aa0-8e77-b0deb066e734",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v2"
+    },
+    "content": "## Returns\n\nReturns the created Subscription object.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/subscriptions \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d customer=cus_Na6dX7aXxi11N4 \\\n  -d \"items[0][price]\"=price_1MowQULkdIwHu7ixraBm864M\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n  \"object\": \"subscription\",\n  \"customer\": \"cus_Na6dX7aXxi11N4\",\n  \"status\": \"active\",\n  \"currency\": \"usd\",\n  \"collection_method\": \"charge_automatically\",\n  \"default_payment_method\": null,\n  \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n  \"billing_cycle_anchor\": 1679609767,\n  \"start_date\": 1679609767,\n  \"cancel_at_period_end\": false,\n  \"trial_start\": null,\n  \"trial_end\": null,\n  \"metadata\": {},\n  \"created\": 1679609767,\n  \"livemode\": false,\n  \"items\": {\n    \"object\": \"list\",\n    \"data\": [\n      {\n        \"id\": \"si_Na6dzxczY5fwHx\",\n        \"quantity\": 1,\n        \"price\": {\n          \"id\": \"price_1MowQULkdIwHu7ixraBm864M\",\n          \"currency\": \"usd\",\n          \"unit_amount\": 1000,\n          \"recurring\": { \"interval\": \"month\", \"interval_count\": 1 }\n        }\n      }\n    ]\n  }\n}\n```\n# Update a Subscription\n\n**POST** `/v1/subscriptions/:id`\n\nUpdates an existing subscription. Used for upgrading/downgrading plans, changing quantities, pausing collection, and more. Stripe optionally prorates charges when prices or quantities change.\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `items` | array | optional | Updated list of items. Each can include `id` (existing item ID), `price`, `quantity`, or `deleted: true` to remove |\n| `items[].id` | string | optional | ID of existing subscription item to modify |\n| `items[].price` | string | optional | New Price ID to switch to |\n| `items[].quantity` | integer | optional | Updated quantity |\n| `items[].deleted` | boolean | optional | Set `true` to remove this item |\n| `default_payment_method` | string | optional | ID of new default PaymentMethod |\n| `collection_method` | enum | optional | `charge_automatically` or `send_invoice` |\n| `days_until_due` | integer | optional | Days until invoice is due (for `send_invoice`) |\n| `proration_behavior` | enum | optional | `create_prorations` (default), `none`, or `always_invoice` |\n| `proration_date` | timestamp | optional | Calculate prorations as if change happened at this time |\n| `billing_cycle_anchor` | `now` or `unchanged` | optional | Reset billing anchor to now, or keep unchanged |\n| `cancel_at_period_end` | boolean | optional | Set `true` to cancel at end of period, `false` to undo |\n| `cancel_at` | timestamp or `\"\"` | optional | Schedule/unschedule cancellation |\n| `trial_end` | timestamp or `now` | optional | End the trial at this time |\n| `pause_collection` | object | optional | Pause billing. Set `behavior` to `keep_as_draft`, `mark_uncollectible`, or `void`. Set to `\"\"` to resume |\n| `pause_collection.behavior` | enum | optional | What to do with invoices while paused |\n| `pause_collection.resumes_at` | timestamp | optional | Auto-resume at this timestamp |\n| `payment_behavior` | enum | optional | `allow_incomplete`, `error_if_incomplete`, or `default_incomplete` |\n| `description` | string | optional | Arbitrary description |\n| `metadata` | object | optional | Key-value pairs. Set key to `\"\"` to unset |\n| `on_behalf_of` | string | optional | Connected account ID |\n| `transfer_data` | object | optional | Set destination for fund transfers, or `\"\"` to remove |\n| `cancellation_details.comment` | string | optional | Comment about why subscription is being changed |\n| `cancellation_details.feedback` | enum | optional | Customer feedback reason |\n\n## Returns\n\nReturns the updated Subscription object.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/subscriptions/sub_1MowQVLkdIwHu7ixeRlqHVzs \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d \"metadata[order_id]\"=6735\n```",
+    "enriched_summary": "Covers the v2 update subscription endpoint with pause_collection, price switching, proration, and cancellation_details parameters.",
+    "enriched_keywords": [
+      "update subscription v2",
+      "pause_collection",
+      "price switch",
+      "cancellation_details",
+      "proration_date"
+    ],
+    "enriched_questions": [
+      "How do you pause a subscription's billing collection in v2?",
+      "How do you switch a subscription to a different price in v2?",
+      "What new parameters does the v2 update subscription endpoint add over v1?",
+      "How do you collect cancellation feedback when updating a subscription?"
+    ]
+  },
+  {
+    "chunk_id": "6d71ac5b-db18-4f13-b366-294ec286a7e1",
+    "metadata": {
+      "version": "v2",
+      "api_class": "SUBSCRIPTIONS"
+    },
+    "content": "## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/subscriptions/sub_1MowQVLkdIwHu7ixeRlqHVzs \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d \"metadata[order_id]\"=6735\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n  \"object\": \"subscription\",\n  \"customer\": \"cus_Na6dX7aXxi11N4\",\n  \"status\": \"active\",\n  \"currency\": \"usd\",\n  \"collection_method\": \"charge_automatically\",\n  \"default_payment_method\": null,\n  \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n  \"cancel_at_period_end\": false,\n  \"pause_collection\": null,\n  \"metadata\": { \"order_id\": \"6735\" },\n  \"created\": 1679609767,\n  \"livemode\": false,\n  \"items\": {\n    \"object\": \"list\",\n    \"data\": [\n      {\n        \"id\": \"si_Na6dzxczY5fwHx\",\n        \"quantity\": 1,\n        \"price\": {\n          \"id\": \"price_1MowQULkdIwHu7ixraBm864M\",\n          \"currency\": \"usd\",\n          \"unit_amount\": 1000,\n          \"recurring\": { \"interval\": \"month\", \"interval_count\": 1 }\n        }\n      }\n    ]\n  }\n}\n```\n# Retrieve a Subscription\n\n**GET** `/v1/subscriptions/:id`\n\n## Parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `id` | string (path) | The ID of the subscription to retrieve |\n\n## Returns\n\nReturns the Subscription object.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/subscriptions/sub_1MowQVLkdIwHu7ixeRlqHVzs \\\n  -u \"<<YOUR_SECRET_KEY>>\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n  \"object\": \"subscription\",\n  \"customer\": \"cus_Na6dX7aXxi11N4\",\n  \"status\": \"active\",\n  \"currency\": \"usd\",\n  \"collection_method\": \"charge_automatically\",\n  \"default_payment_method\": null,\n  \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n  \"billing_cycle_anchor\": 1679609767,\n  \"start_date\": 1679609767,\n  \"cancel_at_period_end\": false,\n  \"cancel_at\": null,\n  \"canceled_at\": null,\n  \"ended_at\": null,\n  \"trial_start\": null,\n  \"trial_end\": null,\n  \"pause_collection\": null,\n  \"description\": null,\n  \"metadata\": {},\n  \"created\": 1679609767,\n  \"livemode\": false,\n  \"items\": {\n    \"object\": \"list\",\n    \"data\": [\n      {\n        \"id\": \"si_Na6dzxczY5fwHx\",\n        \"quantity\": 1,\n        \"price\": {\n          \"id\": \"price_1MowQULkdIwHu7ixraBm864M\",\n          \"currency\": \"usd\",\n          \"unit_amount\": 1000,\n          \"recurring\": { \"interval\": \"month\", \"interval_count\": 1 }\n        }\n      }\n    ]\n  }\n}\n```\n# List Subscriptions\n\n**GET** `/v1/subscriptions`\n\nBy default, returns subscriptions that have not been canceled. Use `status=canceled` to include canceled ones.\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `customer` | string | optional | Filter by customer ID |\n| `status` | enum | optional | Filter by status: `active`, `canceled`, `incomplete`, `incomplete_expired`, `past_due`, `paused`, `trialing`, `unpaid`, or `all` |\n| `price` | string | optional | Filter by Price ID |\n| `collection_method` | enum | optional | `charge_automatically` or `send_invoice` |\n| `limit` | integer | optional | Number of results (1\u2013100, default 10) |\n| `starting_after` | string | optional | Subscription ID cursor \u2014 fetch next page after this ID |\n| `ending_before` | string | optional | Subscription ID cursor \u2014 fetch previous page before this ID |\n| `created.gt` | integer | optional | Created after this Unix timestamp (exclusive) |\n| `created.gte` | integer | optional | Created at or after this Unix timestamp (inclusive) |\n| `created.lt` | integer | optional | Created before this Unix timestamp (exclusive) |\n| `created.lte` | integer | optional | Created at or before this Unix timestamp (inclusive) |\n\n## Returns\n\nA dictionary with a `data` array of Subscription objects. Includes `has_more` for pagination.\n\n## Example Request\n\n```curl\ncurl -G https://api.stripe.com/v1/subscriptions \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d limit=3\n```",
+    "enriched_summary": "Covers v2 update subscription example response and the retrieve and list subscriptions endpoints with updated filter options.",
+    "enriched_keywords": [
+      "list subscriptions v2",
+      "retrieve subscription",
+      "price filter",
+      "paused status filter",
+      "pagination"
+    ],
+    "enriched_questions": [
+      "How do you retrieve a subscription in v2?",
+      "How do you list subscriptions filtered by price in v2?",
+      "What filters are available when listing subscriptions in v2?",
+      "What does the v2 list subscriptions response look like?"
+    ]
+  },
+  {
+    "chunk_id": "46569fe5-78e3-4ed3-bc08-c5fe7d62bbf6",
+    "metadata": {
+      "version": "v2",
+      "api_class": "SUBSCRIPTIONS"
+    },
+    "content": "## Example Request\n\n```curl\ncurl -G https://api.stripe.com/v1/subscriptions \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d limit=3\n```\n\n## Example Response\n\n```json\n{\n  \"object\": \"list\",\n  \"url\": \"/v1/subscriptions\",\n  \"has_more\": false,\n  \"data\": [\n    {\n      \"id\": \"sub_1MowQVLkdIwHu7ixeRlqHVzs\",\n      \"object\": \"subscription\",\n      \"customer\": \"cus_Na6dX7aXxi11N4\",\n      \"status\": \"active\",\n      \"currency\": \"usd\",\n      \"collection_method\": \"charge_automatically\",\n      \"latest_invoice\": \"in_1MowQWLkdIwHu7ixuzkSPfKd\",\n      \"cancel_at_period_end\": false,\n      \"metadata\": {},\n      \"created\": 1679609767,\n      \"livemode\": false,\n      \"items\": {\n        \"data\": [\n          {\n            \"id\": \"si_Na6dzxczY5fwHx\",\n            \"quantity\": 1,\n            \"price\": {\n              \"id\": \"price_1MowQULkdIwHu7ixraBm864M\",\n              \"unit_amount\": 1000,\n              \"currency\": \"usd\",\n              \"recurring\": { \"interval\": \"month\", \"interval_count\": 1 }\n            }\n          }\n        ]\n      }\n    }\n  ]\n}\n```\n# Cancel a Subscription\n\n**DELETE** `/v1/subscriptions/:id`\n\nCancels a subscription immediately. The customer won't be charged again. After cancellation, the subscription can no longer be updated.\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `id` | string (path) | **required** | The ID of the subscription to cancel |\n| `invoice_now` | boolean | optional | If `true`, generates a final invoice for any un-invoiced usage. Default `false` |\n| `prorate` | boolean | optional | If `true`, generates a proration credit for unused time. Default `false` |\n| `cancellation_details.comment` | string | optional | Internal comment about the cancellation |\n| `cancellation_details.feedback` | enum | optional | Customer reason: `customer_service`, `low_quality`, `missing_features`, `other`, `switched_service`, `too_complex`, `too_expensive`, or `unused` |\n\n## Returns\n\nReturns the canceled Subscription object with `status: \"canceled\"`.\n\n## Example Request\n\n```curl\ncurl -X DELETE https://api.stripe.com/v1/subscriptions/sub_1MlPf9LkdIwHu7ixB6VIYRyX \\\n  -u \"<<YOUR_SECRET_KEY>>\"\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"sub_1MlPf9LkdIwHu7ixB6VIYRyX\",\n  \"object\": \"subscription\",\n  \"customer\": \"cus_NWSaVkvdacCUi4\",\n  \"status\": \"canceled\",\n  \"currency\": \"usd\",\n  \"canceled_at\": 1678768842,\n  \"ended_at\": 1678768842,\n  \"cancel_at_period_end\": false,\n  \"cancellation_details\": {\n    \"comment\": null,\n    \"feedback\": null,\n    \"reason\": \"cancellation_requested\"\n  },\n  \"latest_invoice\": \"in_1MlPf9LkdIwHu7ixEo6hdgCw\",\n  \"metadata\": {},\n  \"created\": 1678768838,\n  \"livemode\": false,\n  \"items\": {\n    \"data\": [\n      {\n        \"id\": \"si_NWSaWTp80M123q\",\n        \"quantity\": 1,\n        \"price\": {\n          \"id\": \"price_1MlPf7LkdIwHu7ixgcbP7cwE\",\n          \"unit_amount\": 1099,\n          \"currency\": \"usd\",\n          \"recurring\": { \"interval\": \"month\", \"interval_count\": 1 }\n        }\n      }\n    ]\n  }\n}\n```\n# Resume a Subscription\n\n**POST** `/v1/subscriptions/:id/resume`\n\nResumes a paused subscription. If no resumption invoice is generated, the subscription becomes `active` immediately. If a resumption invoice is generated, the subscription stays `paused` until it's paid.\n\n## Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `id` | string (path) | **required** | The ID of the subscription to resume |\n| `billing_cycle_anchor` | enum | optional | `now` (default) resets billing cycle; `unchanged` keeps existing anchor |\n| `proration_behavior` | enum | optional | Only applies when `billing_cycle_anchor=unchanged`. `create_prorations` (default), `none`, or `always_invoice` |\n\n## Returns\n\nReturns the Subscription object with updated status.\n\n## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/subscriptions/sub_1MoGGtLkdIwHu7ixk5CfdiqC/resume \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d billing_cycle_anchor=now\n```",
+    "enriched_summary": "Covers v2 list subscriptions example response and the cancel and resume subscription endpoints with updated parameters and cancellation_details.",
+    "enriched_keywords": [
+      "cancel subscription v2",
+      "resume subscription v2",
+      "cancellation_details feedback",
+      "invoice_now",
+      "proration_behavior"
+    ],
+    "enriched_questions": [
+      "How do you cancel a subscription in v2?",
+      "What cancellation feedback options are available in v2?",
+      "How does canceling a subscription differ between v1 and v2?",
+      "How do you resume a paused subscription in v2?",
+      "What does the cancel subscription response look like in v2?"
+    ]
+  },
+  {
+    "chunk_id": "0837570c-8c28-4992-8507-f66e621d5c4b",
+    "metadata": {
+      "api_class": "SUBSCRIPTIONS",
+      "version": "v2"
+    },
+    "content": "## Example Request\n\n```curl\ncurl https://api.stripe.com/v1/subscriptions/sub_1MoGGtLkdIwHu7ixk5CfdiqC/resume \\\n  -u \"<<YOUR_SECRET_KEY>>\" \\\n  -d billing_cycle_anchor=now\n```\n\n## Example Response\n\n```json\n{\n  \"id\": \"sub_1MoGGtLkdIwHu7ixk5CfdiqC\",\n  \"object\": \"subscription\",\n  \"customer\": \"cus_NZP5i1diUz55jp\",\n  \"status\": \"active\",\n  \"currency\": \"usd\",\n  \"collection_method\": \"charge_automatically\",\n  \"billing_cycle_anchor\": 1679447726,\n  \"pause_collection\": null,\n  \"latest_invoice\": \"in_1MoGGwLkdIwHu7ixHSrelo8X\",\n  \"cancel_at_period_end\": false,\n  \"metadata\": {},\n  \"created\": 1679447723,\n  \"livemode\": false,\n  \"items\": {\n    \"data\": [\n      {\n        \"id\": \"si_NZP5BhUIuWzXDG\",\n        \"quantity\": 1,\n        \"price\": {\n          \"id\": \"price_1MoGGsLkdIwHu7ixA9yHsq2N\",\n          \"unit_amount\": 1099,\n          \"currency\": \"usd\",\n          \"recurring\": { \"interval\": \"month\", \"interval_count\": 1 }\n        }\n      }\n    ]\n  }\n}\n```",
+    "enriched_summary": "Covers the v2 resume subscription example response showing restored active status with price-based items.",
+    "enriched_keywords": [
+      "resume subscription response v2",
+      "active status",
+      "pause_collection cleared",
+      "price interval",
+      "billing_cycle_anchor"
+    ],
+    "enriched_questions": [
+      "What does the resume subscription response look like in v2?",
+      "How does the resume response differ between v1 and v2?",
+      "What status does a subscription return to after being resumed in v2?",
+      "What fields confirm that pause_collection was cleared after a resume?"
+    ]
+  },
+  {
+    "chunk_id": "80b9a469-0453-4003-b204-63a7a7633543",
+    "metadata": {
+      "api_class": "TRANSFERS",
+      "version": "v1"
+    },
+    "content": "=========\nTransfers\n=========\n\nA Transfer object is created when you move funds between accounts.\n\n-------------------\nThe Transfer Object\n-------------------\n\n* **id** (string): Unique identifier for the object.\n* **object** (string): Always has the value ``transfer``.\n* **amount_in_cents** (integer): Amount in cents to be transferred.\n* **currency_code** (enum): Three-letter ISO currency code, in lowercase.\n* **recipient_id** (string): ID of the account the transfer was sent to.\n* **is_reversed** (boolean): Whether the transfer has been fully reversed.\n\n---------\nEndpoints\n---------\n\nCreate a transfer\n-----------------\n**POST /api/v1.0/transfers**\n\n**Parameters:**\n\n* **amount_in_cents** (integer, required): A positive integer in cents representing how much to transfer.\n* **currency_code** (enum, required): Three-letter ISO code for currency.\n* **recipient_id** (string, required): The ID of the connected account.\n\nRetrieve a transfer\n-------------------\n**GET /api/v1.0/transfers/:id**\n\n**Example Response:**\n\n.. code-block:: json\n\n   {\n     \"status\": \"success\",\n     \"api_version\": \"1.0\",\n     \"data\": {\n       \"id\": \"tr_12345\",\n       \"object\": \"transfer\",\n       \"amount_in_cents\": 400,\n       \"currency_code\": \"usd\",\n       \"recipient_id\": \"acct_9876\",\n       \"is_reversed\": false\n     }\n   }\n\nList all transfers\n------------------\n**GET /api/v1.0/transfers**\n\n**Parameters:**\n\n* **recipient_id** (string, optional): Only return transfers for the destination specified by this account ID.\n* **max_results** (integer, optional): A limit on the number of objects to be returned. Default is 10.",
+    "enriched_summary": "Covers the v1 Transfers API with the Transfer object using legacy field names and create, retrieve, list endpoints.",
+    "enriched_keywords": [
+      "Transfer object v1",
+      "amount_in_cents",
+      "recipient_id",
+      "is_reversed",
+      "create transfer"
+    ],
+    "enriched_questions": [
+      "What fields does the v1 Transfer object contain?",
+      "How do you create a transfer in v1?",
+      "How do you list transfers for a specific recipient in v1?",
+      "What is the v1 endpoint structure for the Transfers API?"
+    ]
+  },
+  {
+    "chunk_id": "e1dcd8a7-b578-439e-9bbd-d6a0ce4395eb",
+    "metadata": {
+      "api_class": "TRANSFERS",
+      "version": "v2"
+    },
+    "content": "# Transfers\n\nA `Transfer` object is created when you move funds between Stripe accounts as part of Connect.\n\n## The Transfer Object\n\n- `id` (string): Unique identifier for the object.\n- `object` (string): String representing the object\u2019s type. Always has the value `transfer`.\n- `amount` (integer): Amount in cents to be transferred.\n- `amount_reversed` (integer): Amount in cents reversed (can be less than the amount attribute on the transfer if a partial reversal was issued).\n- `balance_transaction` (string, nullable): Balance transaction that describes the impact of this transfer on your account balance.\n- `created` (timestamp): Time that this record of the transfer was first created.\n- `currency` (enum): Three-letter ISO currency code, in lowercase.\n- `description` (string, nullable): An arbitrary string attached to the object. Often useful for displaying to users.\n- `destination` (string): ID of the Stripe account the transfer was sent to.\n- `destination_payment` (string, nullable): If the destination is a Stripe account, this will be the ID of the payment that the destination account received for the transfer.\n- `livemode` (boolean): If the object exists in live mode, the value is `true`. If the object exists in test mode, the value is `false`.\n- `metadata` (object): Set of key-value pairs that you can attach to an object.\n- `reversed` (boolean): Whether the transfer has been fully reversed. If the transfer is only partially reversed, this attribute will still be false.\n- `source_transaction` (string, nullable): ID of the charge that was used to fund the transfer. If null, the transfer was funded from the available balance.\n- `source_type` (string, nullable): The source balance this transfer came from. One of `card`, `fpx`, or `bank_account`.\n- `transfer_group` (string, nullable): A string that identifies this transaction as part of a group.",
+    "enriched_summary": "Covers the v2 Transfer object with expanded fields like balance_transaction, destination_payment, source_transaction, and transfer_group.",
+    "enriched_keywords": [
+      "Transfer object v2",
+      "balance_transaction",
+      "destination_payment",
+      "transfer_group",
+      "source_transaction"
+    ],
+    "enriched_questions": [
+      "What fields does the v2 Transfer object include?",
+      "How does the v2 Transfer object differ from v1?",
+      "What is the transfer_group field used for?",
+      "How is amount_reversed used in a v2 Transfer?"
+    ]
+  },
+  {
+    "chunk_id": "9a3ffc29-879e-4346-bdcd-22fff5752ebb",
+    "metadata": {
+      "version": "v2",
+      "api_class": "TRANSFERS"
+    },
+    "content": "## Endpoints\n\n### Create a transfer\n\n**POST /v1/transfers**\n\nTo send funds from your Stripe account to a connected account, you create a new transfer object.\n\n**Parameters:**\n\n- `amount` (integer, required): A positive integer in cents representing how much to transfer.\n- `currency` (enum, required): Three-letter ISO code for currency in lowercase.\n- `destination` (string, required): The ID of a connected Stripe account.\n- `description` (string, optional): An arbitrary string attached to the object.\n- `metadata` (object, optional): Set of key-value pairs that you can attach to an object.\n- `source_transaction` (string, optional): You can use this parameter to transfer funds from a charge before they are added to your available balance.\n- `source_type` (string, optional): The source balance to use for this transfer. One of `bank_account`, `card`, or `fpx`.\n- `transfer_group` (string, optional): A string that identifies this transaction as part of a group.\n\n### Retrieve a transfer\n\n**GET /v1/transfers/:id**\n\nRetrieves the details of an existing transfer. Supply the unique transfer ID from either a transfer creation request or the transfer list, and Stripe will return the corresponding transfer information.\n\n### List all transfers\n\n**GET /v1/transfers**\n\nReturns a list of existing transfers sent to connected accounts. The transfers are returned in sorted order, with the most recently created transfers appearing first.\n\n**Parameters:**\n\n- `created` (object, optional): Only return transfers that were created during the given date interval (supports `gt`, `gte`, `lt`, `lte`).\n- `destination` (string, optional): Only return transfers for the destination specified by this account ID.\n- `ending_before` (string, optional): A cursor for use in pagination. `ending_before` is an object ID that defines your place in the list.\n- `limit` (integer, optional): A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 10.\n- `starting_after` (string, optional): A cursor for use in pagination. `starting_after` is an object ID that defines your place in the list.\n- `transfer_group` (string, optional): Only return transfers with the specified transfer group.",
+    "enriched_summary": "Covers the v2 Transfers API endpoints for create, retrieve, and list transfers with updated parameter naming and filtering options.",
+    "enriched_keywords": [
+      "create transfer v2",
+      "destination",
+      "source_transaction",
+      "list transfers",
+      "transfer_group filter"
+    ],
+    "enriched_questions": [
+      "How do you create a transfer to a connected account in v2?",
+      "What parameters are required to create a transfer in v2?",
+      "How do you list transfers filtered by destination in v2?",
+      "How does creating a transfer differ between v1 and v2?",
+      "What is the source_transaction parameter used for when creating a transfer?"
+    ]
+  }
+]
