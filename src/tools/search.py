@@ -4,7 +4,7 @@ Stripe API Documentation Search Tool.
 
 This tool provides semantic search capabilities over the Stripe API
 documentation vector store, with support for filtering by API class
-and version.
+and version (basil, clover, etc.).
 """
 from typing import Optional, List
 from langchain_core.tools import tool
@@ -33,7 +33,8 @@ class StripeAPISearchInput(BaseModel):
     version: Optional[str] = Field(
         default=None,
         description=(
-            "The specific API version to filter by: 'v1' or 'v2'. "
+            "The specific API version to filter by: 'basil' or 'clover'. "
+            "Stripe uses codename-based versioning (acacia, basil, clover). "
             "Leave null to automatically use the latest version for this api_class."
         )
     )
@@ -50,7 +51,7 @@ def search_stripe_api_docs(
     or API concept. Use one call per distinct (api_class, version) combination.
 
     Parallel calls are ONLY appropriate when comparing different versions of the SAME
-    endpoint (e.g., CUSTOMERS v1 vs CUSTOMERS v2) or querying two entirely different
+    endpoint (e.g., CUSTOMERS basil vs CUSTOMERS clover) or querying two entirely different
     API classes in one turn. Never call this tool twice for the same endpoint with
     different phrasings — use the most precise query on the first attempt.
     """

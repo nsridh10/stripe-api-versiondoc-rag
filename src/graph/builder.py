@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph, END
 
 from src.graph.state import AgentState
 from src.graph.nodes import (
+    frontier_node,
     planner_node,
     budget_checker_node,
     executor_node,
@@ -16,6 +17,7 @@ from src.graph.nodes import (
     synthesizer_node,
 )
 from src.graph.routing import (
+    route_after_frontier,
     route_after_planner,
     route_after_budget_checker,
     route_after_executor,
@@ -29,13 +31,17 @@ def build_graph() -> StateGraph:
     
     Graph Structure:
     
-    planner → budget_checker → executor → tools → restructurer → synthesizer → END
-                    │              │          │
-                    └──────────────┼──────────┼─→ END (clarification/budget exceeded)
-                                   │          │
-                                   │          └─→ query_expander → budget_checker (retry loop)
-                                   │
-                                   └─→ restructurer (budget exhausted during retry)
+    frontier → planner → budget_checker → executor → tools → restructurer → synthesizer → END
+        │          │              │            │          │
+        └──────────┼──────────────┼────────────┼──────────┼─→ END (rejected/clarification/budget exceeded)
+                   │              │            │          │
+                   │              │            │          └─→ query_expander → budget_checker (retry loop)
+                   │              │            │
+                   │              │            └─→ restructurer (budget exhausted during retry)
+                   │              │
+                   │              └─→ END (clarification/budget exceeded)
+                   │
+                   └─→ END (clarification needed)
     
     Returns:
         Compiled StateGraph ready for execution.
@@ -43,6 +49,7 @@ def build_graph() -> StateGraph:
     workflow = StateGraph(AgentState)
 
     # Add all nodes
+    workflow.add_node("frontier", frontier_node)
     workflow.add_node("planner", planner_node)
     workflow.add_node("budget_checker", budget_checker_node)
     workflow.add_node("executor", executor_node)
@@ -51,10 +58,15 @@ def build_graph() -> StateGraph:
     workflow.add_node("restructurer", restructurer_node)
     workflow.add_node("synthesizer", synthesizer_node)
 
-    # Set entry point
-    workflow.set_entry_point("planner")
+    # Set entry point - now frontier is the first node
+    workflow.set_entry_point("frontier")
 
     # Add conditional edges
+    workflow.add_conditional_edges(
+        "frontier",
+        route_after_frontier,
+        {"planner": "planner", "__end__": END}
+    )
     workflow.add_conditional_edges("planner", route_after_planner)
     workflow.add_conditional_edges(
         "budget_checker", 

@@ -14,6 +14,9 @@ class QueryRequest(BaseModel):
     """Request body for the query endpoint."""
     query: str
     session_id: Optional[str] = None  # Optional: if not provided, creates new session
+    provider: str  # LLM provider: "grok" or "gemini"
+    model: str  # Model name for the provider
+    api_key: str  # API key for the selected provider
 
 
 # ---------------------------------------------------------------------------

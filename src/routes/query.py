@@ -5,7 +5,7 @@ Query endpoint for the Stripe RAG Agent.
 This module handles the main /query endpoint that processes natural language
 queries through the LangGraph agent workflow.
 """
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException
 from typing import Optional
 import uuid
 
@@ -41,20 +41,22 @@ conversation_memory = get_conversation_memory(
 
 
 @router.post("/query", response_model=QueryResponse)
-async def query_agent(
-    request: QueryRequest,
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
-):
+async def query_agent(request: QueryRequest):
     """
     Takes a natural language query, passes it to the LangGraph agent with conversation context,
     and returns the synthesized response with source documents and execution trace.
     
-    Pass your Groq API key in the X-API-Key header.
+    Requires provider, model, and api_key to be provided in the request body.
     """
     try:
-        # --- Set up per-request LLM with user's API key ---
+        # --- Set up per-request LLM with user's credentials ---
         try:
-            llm = get_llm(api_key=x_api_key)
+            llm = get_llm(
+                provider=request.provider,
+                model=request.model,
+                api_key=request.api_key,
+                temperature=0.0
+            )
             set_llm(llm)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -95,7 +97,11 @@ async def query_agent(
             "rephrase_count": 0,
             "intent_type": None,
             "conversation_context": conversation_context or None,
-            "active_scope": active_scope
+            "active_scope": active_scope,
+            "query_tracker": None,
+            "restructurer_analysis": None,
+            "frontier_result": None,
+            "is_rejected": False,
         }
         
         print(f"\n[API] Session: {session_id} | Query: {request.query}")
@@ -111,9 +117,18 @@ async def query_agent(
         updated_context = result.get("conversation_context") or []
         updated_scope = result.get("active_scope")
         
-        # Determine message type
+        # Determine message type (rejected, clarification, or answer)
+        is_rejected = result.get("is_rejected", False)
         needs_clarification = result.get("needs_clarification", False)
-        message_type = "clarification" if needs_clarification else "answer"
+        if is_rejected:
+            message_type = "rejected"
+            frontier_result = result.get("frontier_result")
+            rejection_type = frontier_result.get("rejection_type") if frontier_result else None
+            print(f"[API] Request REJECTED: {rejection_type}")
+        elif needs_clarification:
+            message_type = "clarification"
+        else:
+            message_type = "answer"
         
         print(f"[API] Intent detected: {intent_type} | Message type: {message_type}")
         

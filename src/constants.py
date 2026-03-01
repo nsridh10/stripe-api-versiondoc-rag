@@ -54,6 +54,33 @@ KNOWN_API_CLASSES = get_config_value(
 
 
 # ---------------------------------------------------------------------------
+# API Version Constants
+# ---------------------------------------------------------------------------
+# Stripe uses codenames for API versions: acacia, basil, clover (alphabetical)
+
+# Versions this RAG system supports (MVP: basil and clover only)
+SUPPORTED_API_VERSIONS = get_config_value(
+    "api_versions.supported",
+    ["basil", "clover"]
+)
+
+# All Stripe API versions that exist (for user-friendly error messages)
+ALL_STRIPE_VERSIONS = get_config_value(
+    "api_versions.all_stripe_versions",
+    ["acacia", "basil", "clover"]
+)
+
+# Default version when user doesn't specify one
+DEFAULT_API_VERSION = get_config_value(
+    "api_versions.default_version",
+    "clover"
+)
+
+# Versions that exist in Stripe but are NOT supported by this RAG
+UNSUPPORTED_VERSIONS = [v for v in ALL_STRIPE_VERSIONS if v not in SUPPORTED_API_VERSIONS]
+
+
+# ---------------------------------------------------------------------------
 # Status Constants
 # ---------------------------------------------------------------------------
 

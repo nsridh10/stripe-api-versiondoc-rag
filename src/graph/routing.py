@@ -11,6 +11,36 @@ from src.trace import get_trace
 from src.constants import MAX_REPHRASE, STATUS_PENDING
 
 
+def route_after_frontier(state: AgentState) -> Literal["planner", "__end__"]:
+    """
+    Routes after frontier node.
+    
+    - If the request is rejected (out-of-scope, unsupported version), end the turn
+    - If clarification is needed (from frontier), end the turn with the clarification message
+    - Otherwise proceed to planner
+    """
+    trace = get_trace()
+    
+    # Check if request was rejected
+    if state.get("is_rejected"):
+        if trace:
+            frontier_result = state.get("frontier_result")
+            rejection_type = frontier_result.get("rejection_type") if frontier_result else "unknown"
+            trace.add_routing("frontier", "__end__", f"Rejected: {rejection_type}")
+        return "__end__"
+    
+    # Check if clarification is needed (from frontier)
+    if state.get("needs_clarification"):
+        if trace:
+            trace.add_routing("frontier", "__end__", "Clarification needed from frontier")
+        return "__end__"
+    
+    # Valid request - proceed to planner
+    if trace:
+        trace.add_routing("frontier", "planner", "Request validated, proceeding to planning")
+    return "planner"
+
+
 def route_after_planner(state: AgentState) -> Literal["budget_checker", "__end__"]:
     """
     Routes after planner node.

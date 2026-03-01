@@ -74,42 +74,38 @@ def get_embeddings() -> Embeddings:
         print(f"[Embeddings] Model loaded successfully")
         return _embeddings_cache
 
-def get_llm(api_key: str = None) -> BaseChatModel:
-    """Returns the configured LLM. Accepts optional api_key to override config."""
-    provider = config["services"]["llm"]["provider"].lower()
-    model_name = config["services"]["llm"]["model_name"]
-    temperature = config["services"]["llm"].get("temperature", 0.0)
+def get_llm(provider: str, model: str, api_key: str, temperature: float = 0.0) -> BaseChatModel:
+    """Returns the configured LLM with provided credentials.
+    
+    Args:
+        provider: LLM provider name ("grok" or "gemini")
+        model: Model name for the provider
+        api_key: API key for authentication
+        temperature: Temperature setting for the model (default: 0.0)
+    """
+    provider = provider.lower()
+    
+    if not api_key:
+        raise ValueError(f"{provider.title()} API key not provided. Please enter your API key.")
     
     if provider == "groq":
         from langchain_groq import ChatGroq
-        key = api_key or config["services"]["api_keys"].get("groq")
-        if not key:
-            raise ValueError("Groq API key not provided. Please enter your API key.")
-        return ChatGroq(model=model_name, temperature=temperature, groq_api_key=key)
+        return ChatGroq(model=model, temperature=temperature, groq_api_key=api_key)
     
     elif provider == "grok":
         from langchain_xai import ChatXAI
-        key = api_key or config["services"]["api_keys"].get("grok")
-        if not key:
-            raise ValueError("Grok API key not provided. Please enter your API key.")
-        return ChatXAI(model=model_name, temperature=temperature, xai_api_key=key)
+        return ChatXAI(model=model, temperature=temperature, xai_api_key=api_key)
         
     elif provider == "gemini":
         from langchain_google_genai import ChatGoogleGenerativeAI
-        key = api_key or config["services"]["api_keys"].get("gemini")
-        if not key:
-            raise ValueError("Gemini API key not provided. Please enter your API key.")
-        return ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=key)
+        return ChatGoogleGenerativeAI(model=model, temperature=temperature, google_api_key=api_key)
         
     elif provider == "openai":
         from langchain_openai import ChatOpenAI
-        key = api_key or config["services"]["api_keys"].get("openai")
-        if not key:
-            raise ValueError("OpenAI API key not provided. Please enter your API key.")
-        return ChatOpenAI(model=model_name, temperature=temperature, openai_api_key=key)
+        return ChatOpenAI(model=model, temperature=temperature, openai_api_key=api_key)
         
     else:
-        raise ValueError(f"Unsupported LLM provider: {provider}")
+        raise ValueError(f"Unsupported LLM provider: {provider}. Supported providers: grok, gemini")
 
 # Singleton cache for vector store to reuse connection
 _vector_store_cache = None

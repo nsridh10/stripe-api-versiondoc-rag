@@ -10,7 +10,7 @@ from typing import List
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
 
-from src.graph.state import AgentState, ToolPlan, QueryTracker
+from src.graph.state import AgentState, ToolPlan, QueryTracker, FrontierResult
 from src.dependencies import get_current_llm
 from src.tools import tools
 from src.trace import get_trace
@@ -19,6 +19,10 @@ from src.constants import (
     MAX_REPHRASE,
     MAX_CONTEXT_TURNS,
     KNOWN_API_CLASSES,
+    SUPPORTED_API_VERSIONS,
+    ALL_STRIPE_VERSIONS,
+    UNSUPPORTED_VERSIONS,
+    DEFAULT_API_VERSION,
     STATUS_PENDING,
     STATUS_COVERED,
     STATUS_NOT_FOUND,
@@ -29,6 +33,7 @@ from src.constants import (
 )
 from src.prompts import (
     get_planner_system_prompt,
+    get_frontier_system_prompt,
     EXECUTOR_SYSTEM_PROMPT,
     SYNTHESIZER_SYSTEM_PROMPT,
 )
@@ -50,6 +55,183 @@ def get_llm_with_tools_bound():
 
 # Pre-configured tool node for executing tool calls
 tool_node = ToolNode(tools)
+
+
+# ---------------------------------------------------------------------------
+# Frontier Node (Entry Point - Request Validation)
+# ---------------------------------------------------------------------------
+
+def frontier_node(state: AgentState) -> dict:
+    """
+    First node in the graph - validates and filters incoming requests.
+    
+    This is a lightweight validation layer that:
+    1. Rejects out-of-scope requests (not about Stripe API)
+    2. Rejects requests for unsupported API versions (e.g., acacia)
+    3. Identifies requests needing clarification
+    4. Detects API classes and versions mentioned
+    
+    If the request is valid, it proceeds to the planner.
+    If rejected, ends the turn with a rejection message.
+    """
+    trace = get_trace()
+    if trace:
+        trace.start_node("frontier", {"description": "Validating request scope and versions"})
+
+    # Find the last human message
+    user_message = next(
+        (m for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
+        None
+    )
+    if not user_message:
+        if trace:
+            trace.end_node("frontier", {"result": "no_user_message"})
+        return {
+            "is_rejected": False,
+            "frontier_result": None,
+            "needs_clarification": False
+        }
+
+    print("\n[Frontier] Validating request...")
+    
+    # Generate frontier system prompt with current config
+    frontier_system_content = get_frontier_system_prompt(
+        known_api_classes=KNOWN_API_CLASSES,
+        supported_versions=SUPPORTED_API_VERSIONS,
+        all_stripe_versions=ALL_STRIPE_VERSIONS,
+        unsupported_versions=UNSUPPORTED_VERSIONS
+    )
+    
+    prompt_messages = [
+        SystemMessage(content=frontier_system_content),
+        HumanMessage(content=user_message.content)
+    ]
+
+    response = get_llm_plain().invoke(prompt_messages)
+
+    try:
+        # Log the raw response for debugging
+        print(f"[Frontier DEBUG] Raw LLM response: '{response.content[:200] if response.content else 'EMPTY'}'")
+        
+        if not response.content or not response.content.strip():
+            print("[Frontier] ERROR: LLM returned empty response. Allowing request through.")
+            return {
+                "is_rejected": False,
+                "frontier_result": None,
+                "needs_clarification": False
+            }
+        
+        # Strip markdown fences if the model added them
+        raw = response.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+        if raw.endswith("```"):
+            raw = raw.rsplit("\n", 1)[0] if "\n" in raw else raw[:-3]
+        raw = raw.strip()
+        
+        validation_result = json.loads(raw)
+        
+        # Build FrontierResult
+        frontier_result: FrontierResult = {
+            "is_valid": validation_result.get("is_valid", True),
+            "rejection_reason": validation_result.get("rejection_reason"),
+            "rejection_type": validation_result.get("rejection_type"),
+            "detected_versions": validation_result.get("detected_versions", []),
+            "detected_api_classes": validation_result.get("detected_api_classes", [])
+        }
+        
+        # Handle rejection
+        if not frontier_result["is_valid"]:
+            rejection_type = frontier_result["rejection_type"]
+            rejection_reason = frontier_result["rejection_reason"] or "Request could not be processed."
+            
+            print(f"[Frontier] REJECTED: type={rejection_type}, reason={rejection_reason}")
+            
+            # Build rejection message based on type
+            if rejection_type == "unsupported_version":
+                detected = frontier_result["detected_versions"]
+                supported_str = ", ".join(SUPPORTED_API_VERSIONS)
+                rejection_msg = (
+                    f"I'm sorry, but the API version(s) you mentioned ({', '.join(detected)}) "
+                    f"are not currently supported by this documentation system.\n\n"
+                    f"**Supported versions:** {supported_str}\n\n"
+                    f"Please rephrase your question using one of the supported versions, "
+                    f"or ask about the latest ({DEFAULT_API_VERSION}) version."
+                )
+            elif rejection_type == "out_of_scope":
+                rejection_msg = (
+                    "I'm a Stripe API documentation assistant. I can help you with questions about:\n"
+                    f"- API classes: {', '.join(KNOWN_API_CLASSES)}\n"
+                    f"- API versions: {', '.join(SUPPORTED_API_VERSIONS)}\n\n"
+                    "Please ask a question related to Stripe API documentation."
+                )
+            else:
+                rejection_msg = rejection_reason
+            
+            if trace:
+                trace.end_node("frontier", {
+                    "result": "rejected",
+                    "rejection_type": rejection_type,
+                    "detected_versions": frontier_result["detected_versions"],
+                    "detected_api_classes": frontier_result["detected_api_classes"]
+                })
+            
+            return {
+                "is_rejected": True,
+                "frontier_result": frontier_result,
+                "needs_clarification": False,
+                "messages": [AIMessage(content=rejection_msg)]
+            }
+        
+        # Handle clarification needed (valid but ambiguous)
+        if validation_result.get("needs_clarification"):
+            clarification_q = validation_result.get(
+                "clarification_question",
+                "Could you please provide more details about your question?"
+            )
+            print(f"[Frontier] Valid but needs clarification: {clarification_q}")
+            
+            if trace:
+                trace.end_node("frontier", {
+                    "result": "needs_clarification",
+                    "detected_versions": frontier_result["detected_versions"],
+                    "detected_api_classes": frontier_result["detected_api_classes"]
+                })
+            
+            return {
+                "is_rejected": False,
+                "frontier_result": frontier_result,
+                "needs_clarification": True,
+                "messages": [AIMessage(content=clarification_q)]
+            }
+        
+        # Request is valid - proceed to planner
+        print(f"[Frontier] VALID: versions={frontier_result['detected_versions']}, "
+              f"classes={frontier_result['detected_api_classes']}")
+        
+        if trace:
+            trace.end_node("frontier", {
+                "result": "valid",
+                "detected_versions": frontier_result["detected_versions"],
+                "detected_api_classes": frontier_result["detected_api_classes"]
+            })
+        
+        return {
+            "is_rejected": False,
+            "frontier_result": frontier_result,
+            "needs_clarification": False
+        }
+
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"[Frontier] Failed to parse validation: {e}. Allowing request through.")
+        if trace:
+            trace.end_node("frontier", {"result": "parse_error", "error": str(e)})
+        # On parse error, be lenient and allow the request through
+        return {
+            "is_rejected": False,
+            "frontier_result": None,
+            "needs_clarification": False
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -83,8 +265,13 @@ def planner_node(state: AgentState) -> dict:
     # Build context-aware prompt
     messages = state.get("messages", [])
     
-    # Generate planner system prompt with current config
-    planner_system_content = get_planner_system_prompt(KNOWN_API_CLASSES, MAX_TOOL_CALLS)
+    # Generate planner system prompt with current config (using new version names)
+    planner_system_content = get_planner_system_prompt(
+        known_api_classes=KNOWN_API_CLASSES,
+        max_tool_calls=MAX_TOOL_CALLS,
+        supported_versions=SUPPORTED_API_VERSIONS,
+        default_version=DEFAULT_API_VERSION
+    )
     
     # Inject active scope if available
     active_scope = state.get("active_scope")

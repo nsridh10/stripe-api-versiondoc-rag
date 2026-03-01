@@ -24,3 +24,8 @@ pypandoc>=1.13
 tiktoken>=0.6.0
 pyyaml>=6.0.1
 numpy>=2.0.0
+
+# --- Evaluation Framework ---
+ragas>=0.2.0
+datasets>=3.0.0
+pandas>=2.0.0

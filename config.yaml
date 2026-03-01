@@ -1,4 +1,6 @@
 # config.yaml
+# Configuration for Stripe RAG Agent
+# Note: LLM provider, model, and API keys are now provided by the frontend
 
 services:
   # Plug-and-play service selection
@@ -14,107 +16,118 @@ services:
     provider: "in-memory" # Options: "in-memory", "sqlite"
     sqlite_db_path: "data/conversation_memory.db" # Used if provider is "sqlite"
     context_window: 5 # Number of previous message pairs to include for context
-  llm:
-    provider: "groq" # Can be swapped to "openai", "anthropic", "xai", etc.
-    model_name: "llama-3.3-70b-versatile"
-    temperature: 0.0
-  api_keys:
-    groq: "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"
-    openai: "sk-your-key-here"
-    gemini: "AIza-your-key-here"
+
+# ---------------------------------------------------------------------------
+# API Version Configuration
+# ---------------------------------------------------------------------------
+# Stripe uses codenames for API versions: acacia, basil, clover (alphabetical)
+# This RAG currently supports basil and clover only (MVP excludes acacia)
+api_versions:
+  # Versions this RAG system handles (used by frontier to validate requests)
+  supported:
+    - "basil"
+    - "clover"
+  # All Stripe API versions that exist (for informative error messages)
+  all_stripe_versions:
+    - "acacia"
+    - "basil"
+    - "clover"
+  # The latest/default version to use when user doesn't specify
+  default_version: "clover"
 
 api_docs:
-  # Define the absolute "latest" version for each class here
+  # Define the latest version for each API class (maps to supported version names)
   latest_versions:
-    ACCOUNTS: "v2"
-    CUSTOMERS: "v2"
-    PAYMENT_INTENTS: "v2"
-    PRICES: "v2"
-    PRODUCTS: "v2"
-    REFUNDS: "v2"
-    SUBSCRIPTIONS: "v2"
-    TRANSFERS: "v2"
+    ACCOUNTS: "clover"
+    CUSTOMERS: "clover"
+    PAYMENT_INTENTS: "clover"
+    PRICES: "clover"
+    PRODUCTS: "clover"
+    REFUNDS: "clover"
+    SUBSCRIPTIONS: "clover"
+    TRANSFERS: "clover"
 
-  # Map file paths directly to their metadata. File names are ignored.
+  # Map file paths directly to their metadata
+  # File naming convention: API_CLASS_<version>.md (e.g., CUSTOMERS_clover.md)
   files:
-    # ACCOUNTS - v1 and v2
-    - path: "data/raw/ACCOUNTS_v1.rst"
+    # ACCOUNTS - basil and clover
+    - path: "data/raw/ACCOUNTS_basil.rst"
       api_class: "ACCOUNTS"
-      version: "v1"
+      version: "basil"
       format: "rst"
-    - path: "data/raw/ACCOUNTS.md"
+    - path: "data/raw/ACCOUNTS_clover.md"
       api_class: "ACCOUNTS"
-      version: "v2"
+      version: "clover"
       format: "md"
 
-    # CUSTOMERS - v1 and v2
-    - path: "data/raw/CUSTOMERS_v1.rst"
+    # CUSTOMERS - basil and clover
+    - path: "data/raw/CUSTOMERS_basil.md"
       api_class: "CUSTOMERS"
-      version: "v1"
-      format: "rst"
-    - path: "data/raw/CUSTOMERS.md"
+      version: "basil"
+      format: "md"
+    - path: "data/raw/CUSTOMERS_clover.md"
       api_class: "CUSTOMERS"
-      version: "v2"
+      version: "clover"
       format: "md"
 
-    # PAYMENT_INTENTS - v1 and v2
-    - path: "data/raw/PAYMENT_INTENTS_v1.rst"
+    # PAYMENT_INTENTS - basil and clover
+    - path: "data/raw/PAYMENT_INTENTS_basil.md"
       api_class: "PAYMENT_INTENTS"
-      version: "v1"
-      format: "rst"
-    - path: "data/raw/PAYMENT_INTENTS.md"
+      version: "basil"
+      format: "md"
+    - path: "data/raw/PAYMENT_INTENTS_clover.md"
       api_class: "PAYMENT_INTENTS"
-      version: "v2"
+      version: "clover"
       format: "md"
 
-    # PRICES - v1 and v2
-    - path: "data/raw/PRICES_v1.rst"
+    # PRICES - basil and clover
+    - path: "data/raw/PRICES_basil.md"
       api_class: "PRICES"
-      version: "v1"
-      format: "rst"
-    - path: "data/raw/PRICES.md"
+      version: "basil"
+      format: "md"
+    - path: "data/raw/PRICES_clover.md"
       api_class: "PRICES"
-      version: "v2"
+      version: "clover"
       format: "md"
 
-    # PRODUCTS - v1 and v2 (note: v2 file has typo PRODCUTS.md)
-    - path: "data/raw/PRODUCTS_v1.rst"
+    # PRODUCTS - basil and clover
+    - path: "data/raw/PRODUCTS_basil.md"
       api_class: "PRODUCTS"
-      version: "v1"
-      format: "rst"
-    - path: "data/raw/PRODCUTS.md"
+      version: "basil"
+      format: "md"
+    - path: "data/raw/PRODUCTS_clover.md"
       api_class: "PRODUCTS"
-      version: "v2"
+      version: "clover"
       format: "md"
 
-    # REFUNDS - v1 and v2
-    - path: "data/raw/REFUNDS_v1.rst"
+    # REFUNDS - basil and clover
+    - path: "data/raw/REFUNDS_basil.md"
       api_class: "REFUNDS"
-      version: "v1"
-      format: "rst"
-    - path: "data/raw/REFUNDS.md"
+      version: "basil"
+      format: "md"
+    - path: "data/raw/REFUNDS_clover.md"
       api_class: "REFUNDS"
-      version: "v2"
+      version: "clover"
       format: "md"
 
-    # SUBSCRIPTIONS - v1 and v2
-    - path: "data/raw/SUBSCRIPTIONS_v1.rst"
+    # SUBSCRIPTIONS - basil and clover
+    - path: "data/raw/SUBSCRIPTIONS_basil.md"
       api_class: "SUBSCRIPTIONS"
-      version: "v1"
-      format: "rst"
-    - path: "data/raw/SUBSCRIPTIONS.md"
+      version: "basil"
+      format: "md"
+    - path: "data/raw/SUBSCRIPTIONS_clover.md"
       api_class: "SUBSCRIPTIONS"
-      version: "v2"
+      version: "clover"
       format: "md"
 
-    # TRANSFERS - v1 and v2
-    - path: "data/raw/TRANSFERS_v1.rst"
+    # TRANSFERS - basil and clover
+    - path: "data/raw/TRANSFERS_basil.md"
       api_class: "TRANSFERS"
-      version: "v1"
-      format: "rst"
-    - path: "data/raw/TRANSFERS.md"
+      version: "basil"
+      format: "md"
+    - path: "data/raw/TRANSFERS_clover.md"
       api_class: "TRANSFERS"
-      version: "v2"
+      version: "clover"
       format: "md"
 
 agent:
