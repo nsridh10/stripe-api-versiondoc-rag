@@ -15,6 +15,7 @@ from src.agent import app_graph, MAX_TOOL_CALLS
 from src.config import config
 from src.trace import TraceCollector, set_trace
 from src.dependencies import get_llm, set_llm
+from src.graph.nodes import _extract_content_str
 from src.routes.models import (
     QueryRequest,
     QueryResponse,
@@ -112,7 +113,7 @@ async def query_agent(request: QueryRequest):
         
         # Extract final answer and intent classification
         final_message = result["messages"][-1]
-        final_answer = final_message.content
+        final_answer = _extract_content_str(final_message.content)
         intent_type = result.get("intent_type", "new_intent")
         updated_context = result.get("conversation_context") or []
         updated_scope = result.get("active_scope")

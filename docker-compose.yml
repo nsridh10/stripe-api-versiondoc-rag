@@ -1,0 +1,65 @@
+# docker-compose.yml
+# Placed in: stripe-rag-agent/
+#
+# Directory layout expected on the EC2 host (both repos cloned as siblings):
+#   ~/apps/
+#     stripe-rag-agent/      ← this file lives here
+#     stripe-rag-frontend/
+#
+# Run from stripe-rag-agent/:  docker compose up -d --build
+
+version: "3.9"
+
+services:
+  # ── FastAPI + LangGraph backend ────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stripe-rag-backend
+    restart: unless-stopped
+    # Backend is NOT exposed externally; nginx reaches it via Docker network.
+    # Uncomment the port mapping below only if you need direct API access
+    # (e.g. for debugging) – remember to open port 8000 in the SG first.
+    # ports:
+    #   - "8000:8000"
+    environment:
+      # Python logs unbuffered – surface uvicorn output immediately
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Named volume for ChromaDB – persists enriched data across rebuilds.
+      # ⚠️  Do NOT run 'docker compose down -v' after re-ingestion or you will
+      #     lose the enriched vector store and need to re-run the reingest script.
+      - chroma_data:/app/data/chroma_db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # give the model time to load on first boot
+
+  # ── Vite+React frontend served by nginx ───────────────────────────────────
+  frontend:
+    build:
+      context: ../stripe-rag-frontend
+      dockerfile: Dockerfile
+    container_name: stripe-rag-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80" # public HTTP – only port 80 needs to be open in SG
+    depends_on:
+      backend:
+        condition: service_healthy
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  chroma_data:
+    # On first 'docker compose up', Docker copies /app/data/chroma_db from the
+    # image into this volume (pre-built baseline).  After running the reingest
+    # script the volume holds the enriched collection and survives rebuilds.

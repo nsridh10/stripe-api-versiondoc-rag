@@ -40,6 +40,28 @@ from src.prompts import (
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _extract_content_str(content) -> str:
+    """Normalize LLM response content to a plain string.
+
+    Some providers (e.g. Gemini via LangChain) return a list of content
+    blocks instead of a plain string.  This helper extracts the text so
+    the rest of the code can treat it uniformly.
+    """
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(block.get("text") or block.get("content") or "")
+            elif isinstance(block, str):
+                parts.append(block)
+        return "".join(parts)
+    return content or ""
+
+
+# ---------------------------------------------------------------------------
 # LLM Access Functions
 # ---------------------------------------------------------------------------
 
@@ -111,9 +133,10 @@ def frontier_node(state: AgentState) -> dict:
 
     try:
         # Log the raw response for debugging
-        print(f"[Frontier DEBUG] Raw LLM response: '{response.content[:200] if response.content else 'EMPTY'}'")
+        _raw_content = _extract_content_str(response.content)
+        print(f"[Frontier DEBUG] Raw LLM response: '{_raw_content[:200] if _raw_content else 'EMPTY'}'")
         
-        if not response.content or not response.content.strip():
+        if not _raw_content.strip():
             print("[Frontier] ERROR: LLM returned empty response. Allowing request through.")
             return {
                 "is_rejected": False,
@@ -122,7 +145,7 @@ def frontier_node(state: AgentState) -> dict:
             }
         
         # Strip markdown fences if the model added them
-        raw = response.content.strip()
+        raw = _raw_content.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
         if raw.endswith("```"):
@@ -306,14 +329,15 @@ def planner_node(state: AgentState) -> dict:
     try:
         # Log the raw response for debugging
         print(f"[Planner DEBUG] Raw LLM response type: {type(response)}")
-        print(f"[Planner DEBUG] Raw LLM response content: '{response.content[:200] if response.content else 'EMPTY'}'")
+        _raw_content = _extract_content_str(response.content)
+        print(f"[Planner DEBUG] Raw LLM response content: '{_raw_content[:200] if _raw_content else 'EMPTY'}'")
         
-        if not response.content or not response.content.strip():
+        if not _raw_content.strip():
             print("[Planner] ERROR: LLM returned empty response. Falling back to free-form agent.")
             return {"needs_clarification": False, "tool_plan": [], "intent_type": INTENT_NEW}
         
         # Strip markdown fences if the model added them
-        raw = response.content.strip()
+        raw = _raw_content.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
         if raw.endswith("```"):
@@ -745,7 +769,7 @@ def synthesizer_node(state: AgentState) -> dict:
 
     if trace:
         trace.end_node("synthesizer", {
-            "answer_length": len(response.content) if response.content else 0,
+            "answer_length": len(_extract_content_str(response.content)),
             "operation_log_turns": len(existing_context),
             "active_scope": new_scope
         })

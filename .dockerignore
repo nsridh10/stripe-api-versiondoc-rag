@@ -1,0 +1,42 @@
+# ── Python cache ──────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Local dev configs / secrets ───────────────────────────────────────────────
+.env
+.env.*
+*.env
+
+# ── Evaluation outputs (not needed in container) ──────────────────────────────
+data/eval/
+src/eval/
+
+# ── Test files (not needed in container) ──────────────────────────────────────
+src/test\ files/
+
+# ── In-source chroma_db (we copy data/chroma_db from root data/) ──────────────
+src/data/
+
+# ── Editor / OS artifacts ─────────────────────────────────────────────────────
+.DS_Store
+*.swp
+*.idea/
+.vscode/
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+*.md
+chunk_visualization.md
+CONVERSATION_MEMORY.md
+README.md
