@@ -131,10 +131,7 @@ class InMemoryConversationMemory(ConversationMemory):
     
     def clear_session(self, session_id: str) -> None:
         if session_id in self._sessions:
-            self._sessions[session_id]["messages"] = []
-            self._sessions[session_id]["context"] = []
-            self._sessions[session_id]["scope"] = None
-            self._sessions[session_id]["context_start"] = 0
+            del self._sessions[session_id]
             print(f"[Memory] Cleared session: {session_id}")
     
     def session_exists(self, session_id: str) -> bool:
@@ -332,10 +329,7 @@ class SQLiteConversationMemory(ConversationMemory):
     def clear_session(self, session_id: str) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
-            conn.execute(
-                "UPDATE sessions SET context_start = 0, context_data = '[]', scope_data = NULL WHERE session_id = ?",
-                (session_id,)
-            )
+            conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
             conn.commit()
         print(f"[Memory] Cleared session: {session_id}")
     

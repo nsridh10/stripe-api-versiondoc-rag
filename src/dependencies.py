@@ -27,8 +27,10 @@ def get_current_llm() -> BaseChatModel:
     try:
         return _llm_context.get()
     except LookupError:
-        # Fallback to creating a default LLM if not set
-        return get_llm()
+        # No LLM set in context - raise clear error
+        raise ValueError(
+            "No LLM configured. Call set_llm() first or provide credentials via API."
+        )
 
 def get_embeddings() -> Embeddings:
     """Returns the configured embedding provider. Cached as singleton to avoid reloading."""
@@ -78,7 +80,7 @@ def get_llm(provider: str, model: str, api_key: str, temperature: float = 0.0) -
     """Returns the configured LLM with provided credentials.
     
     Args:
-        provider: LLM provider name ("grok" or "gemini")
+        provider: LLM provider name ("groq", "grok", "gemini", or "openai")
         model: Model name for the provider
         api_key: API key for authentication
         temperature: Temperature setting for the model (default: 0.0)
@@ -105,7 +107,7 @@ def get_llm(provider: str, model: str, api_key: str, temperature: float = 0.0) -
         return ChatOpenAI(model=model, temperature=temperature, openai_api_key=api_key)
         
     else:
-        raise ValueError(f"Unsupported LLM provider: {provider}. Supported providers: grok, gemini")
+        raise ValueError(f"Unsupported LLM provider: {provider}. Supported providers: groq, grok, gemini, openai")
 
 # Singleton cache for vector store to reuse connection
 _vector_store_cache = None

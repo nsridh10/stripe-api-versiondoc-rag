@@ -42,13 +42,15 @@ import pandas as pd
 from datasets import Dataset
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
-# Ragas metrics
+# Ragas metrics (using new import path for ragas v1.0+)
 from ragas import evaluate
-from ragas.metrics import (
-    faithfulness,
-    answer_relevancy,
-    answer_correctness,
-)
+from ragas.metrics._faithfulness import Faithfulness
+from ragas.metrics._answer_relevance import AnswerRelevancy
+from ragas.metrics._answer_correctness import AnswerCorrectness
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from langchain_groq import ChatGroq
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # Import your agent graph and state types
 from src.agent import app_graph, AgentState
@@ -63,7 +65,10 @@ from src.eval.test_cases import get_test_cases, ALL_TEST_CASES
 # Configuration
 # ---------------------------------------------------------------------------
 DEFAULT_OUTPUT_DIR = "data/eval"
-RAGAS_LLM_MODEL = "gpt-4o-mini"  # LLM used by Ragas as the judge
+
+# Groq configuration - same model for RAG agent and Ragas judge
+DEFAULT_PROVIDER = "groq"
+DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 
 # ---------------------------------------------------------------------------
@@ -74,27 +79,38 @@ class EvaluationRunner:
     Runs evaluation test cases through the RAG agent and collects metrics.
     """
     
-    def __init__(self, api_key: Optional[str] = None, verbose: bool = True):
+    def __init__(self, api_key: Optional[str] = None, provider: str = DEFAULT_PROVIDER, model: str = DEFAULT_MODEL, verbose: bool = True):
         """
         Initialize the evaluation runner.
         
         Args:
-            api_key: Groq API key. If None, uses environment variable or config.
+            api_key: Groq API key. If None, uses GROQ_API_KEY environment variable.
+            provider: LLM provider (default: groq)
+            model: Model name (default: llama-3.3-70b-versatile)
             verbose: Print progress during evaluation.
         """
         self.verbose = verbose
+        self.provider = provider
+        self.model = model
         self._setup_llm(api_key)
         
     def _setup_llm(self, api_key: Optional[str] = None):
         """Configure the LLM for the agent."""
+        # Use provided API key or fall back to environment variable
+        api_key = api_key or os.environ.get("GROQ_API_KEY")
+        
+        if not api_key:
+            print("[Eval] ERROR: GROQ_API_KEY not found")
+            print("[Eval] Export it with: export GROQ_API_KEY=your_key")
+            sys.exit(1)
+        
         try:
-            llm = get_llm(api_key=api_key)
+            llm = get_llm(provider=self.provider, model=self.model, api_key=api_key)
             set_llm(llm)
             if self.verbose:
-                print("[Eval] LLM configured successfully")
+                print(f"[Eval] LLM configured: {self.provider}/{self.model}")
         except ValueError as e:
             print(f"[Eval] ERROR: Failed to setup LLM: {e}")
-            print("[Eval] Make sure GROQ_API_KEY is set in environment or config.yaml")
             sys.exit(1)
     
     def _build_initial_state(self, question: str) -> dict:
@@ -177,6 +193,11 @@ class EvaluationRunner:
         # Build initial state
         initial_state = self._build_initial_state(question)
         
+        if self.verbose:
+            print(f"\n{'─'*60}")
+            print(f"[Eval] Query: {question}")
+            print(f"{'─'*60}")
+        
         # Time the execution
         start_time = time.time()
         
@@ -184,6 +205,9 @@ class EvaluationRunner:
         try:
             output_state = app_graph.invoke(initial_state)
         except Exception as e:
+            print(f"[Eval] ERROR during agent execution: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "question": question,
                 "answer": f"[ERROR: {str(e)}]",
@@ -206,6 +230,24 @@ class EvaluationRunner:
         final_message = messages[-1] if messages else None
         answer = final_message.content if final_message else "[No response]"
         
+        # Debug: Print all messages in the conversation
+        if self.verbose:
+            print(f"\n[Eval] Agent completed in {latency:.2f}s")
+            print(f"[Eval] Total messages: {len(messages)}")
+            for i, msg in enumerate(messages):
+                msg_type = type(msg).__name__
+                content_preview = str(msg.content)[:100] if msg.content else "[empty]"
+                if isinstance(msg, AIMessage) and hasattr(msg, 'tool_calls') and msg.tool_calls:
+                    print(f"  [{i}] {msg_type}: {len(msg.tool_calls)} tool call(s)")
+                elif isinstance(msg, ToolMessage):
+                    print(f"  [{i}] {msg_type}: {content_preview}...")
+                else:
+                    print(f"  [{i}] {msg_type}: {content_preview}...")
+            
+            # Print final answer
+            print(f"\n[Eval] Final Answer Preview:")
+            print(f"  {answer[:200]}{'...' if len(answer) > 200 else ''}")
+        
         # Extract contexts from tool messages
         contexts = self._extract_contexts(messages)
         
@@ -219,6 +261,9 @@ class EvaluationRunner:
         is_rejected = output_state.get("is_rejected", False)
         frontier_result = output_state.get("frontier_result")
         rejection_type = frontier_result.get("rejection_type") if frontier_result else None
+        
+        if self.verbose and is_rejected:
+            print(f"[Eval] Request was REJECTED: {rejection_type}")
         
         return {
             "question": question,
@@ -287,20 +332,20 @@ class EvaluationRunner:
 # ---------------------------------------------------------------------------
 # Ragas Quality Evaluation
 # ---------------------------------------------------------------------------
-def run_ragas_evaluation(results: Dict[str, List], llm_model: str = RAGAS_LLM_MODEL) -> pd.DataFrame:
+def run_ragas_evaluation(results: Dict[str, List], llm_model: str = DEFAULT_MODEL) -> pd.DataFrame:
     """
     Run Ragas LLM quality evaluation on the collected results.
     
     Args:
         results: Dict with question, answer, contexts, ground_truth lists
-        llm_model: OpenAI model to use as the Ragas judge
+        llm_model: Groq model to use as the Ragas judge
         
     Returns:
         DataFrame with quality scores
     """
     print("\n" + "="*60)
     print("Running Ragas Quality Evaluation (LLM-as-Judge)")
-    print(f"Judge model: {llm_model}")
+    print(f"Judge model: {llm_model} (Groq)")
     print("="*60)
     
     # Ragas expects specific column names
@@ -311,8 +356,43 @@ def run_ragas_evaluation(results: Dict[str, List], llm_model: str = RAGAS_LLM_MO
         "ground_truth": results["ground_truth"],
     })
     
-    # Run evaluation
-    # Note: Ragas requires OPENAI_API_KEY in environment for the judge LLM
+    # Create Groq LLM for Ragas judge (reads GROQ_API_KEY from environment)
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if not groq_api_key:
+        print("\n[WARNING] GROQ_API_KEY not found in environment")
+        print("Export it with: export GROQ_API_KEY=your_key")
+        return pd.DataFrame({
+            "question": results["question"],
+            "faithfulness": [None] * len(results["question"]),
+            "answer_relevancy": [None] * len(results["question"]),
+            "answer_correctness": [None] * len(results["question"]),
+        })
+    
+    judge_llm = ChatGroq(
+        model=llm_model,
+        api_key=groq_api_key,
+        temperature=0,
+    )
+    
+    # Use HuggingFace embeddings (same as vector store) - avoids OpenAI dependency
+    print("[Ragas] Loading HuggingFace embeddings for similarity metrics...")
+    hf_embeddings = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-small-en-v1.5",
+        model_kwargs={'device': 'cpu'},
+        encode_kwargs={'normalize_embeddings': True}
+    )
+    
+    # Wrap LangChain objects for Ragas compatibility
+    ragas_llm = LangchainLLMWrapper(judge_llm)
+    ragas_embeddings = LangchainEmbeddingsWrapper(hf_embeddings)
+    
+    # Instantiate metrics with wrapped Groq LLM + HuggingFace embeddings
+    faithfulness = Faithfulness(llm=ragas_llm)
+    answer_relevancy = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_embeddings)
+    answer_correctness = AnswerCorrectness(llm=ragas_llm)
+    
+    # Run evaluation with Groq as the judge
+    # Pass llm and embeddings to evaluate() to override any defaults
     try:
         evaluation_result = evaluate(
             dataset=ragas_dataset,
@@ -321,11 +401,13 @@ def run_ragas_evaluation(results: Dict[str, List], llm_model: str = RAGAS_LLM_MO
                 answer_relevancy,   # Does it answer the question?
                 answer_correctness, # How complete vs ground truth?
             ],
+            llm=ragas_llm,
+            embeddings=ragas_embeddings,
         )
         return evaluation_result.to_pandas()
     except Exception as e:
         print(f"\n[WARNING] Ragas evaluation failed: {e}")
-        print("Make sure OPENAI_API_KEY is set for the Ragas judge LLM")
+        print("Make sure GROQ_API_KEY is set: export GROQ_API_KEY=your_key")
         # Return empty DataFrame with expected columns
         return pd.DataFrame({
             "question": results["question"],
@@ -397,9 +479,6 @@ def generate_report(
         "avg_latency": round(sum(results["latency_seconds"]) / len(results["latency_seconds"]), 2),
         "avg_tokens": round(sum(results["total_tokens"]) / len(results["total_tokens"]), 0),
         "avg_tool_calls": round(sum(results["tool_calls"]) / len(results["tool_calls"]), 1),
-        "avg_faithfulness": final_df["faithfulness"].mean() if final_df["faithfulness"].notna().any() else None,
-        "avg_relevancy": final_df["answer_relevancy"].mean() if final_df["answer_relevancy"].notna().any() else None,
-        "avg_correctness": final_df["answer_correctness"].mean() if final_df["answer_correctness"].notna().any() else None,
     }
     
     summary_df = pd.DataFrame([summary])
@@ -449,17 +528,20 @@ def print_report(final_df: pd.DataFrame, summary: dict):
 # Main Entry Point
 # ---------------------------------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate Stripe RAG Agent")
+    parser = argparse.ArgumentParser(
+        description="Evaluate Stripe RAG Agent",
+        epilog="""
+Modes:
+  (default)     Run all 5 test cases with Ragas quality evaluation
+  --quick       Run 1 test case only (fast iteration)
+  --skip-ragas  Run all tests but skip Ragas evaluation (performance only)
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument(
         "--quick", 
         action="store_true", 
-        help="Run quick test (2 cases only)"
-    )
-    parser.add_argument(
-        "--category",
-        type=str,
-        default=None,
-        help="Run only tests from specific category (e.g., 'customers', 'payment_intents')"
+        help="Run quick test (1 case only)"
     )
     parser.add_argument(
         "--skip-ragas",
@@ -481,20 +563,18 @@ def main():
     
     args = parser.parse_args()
     
-    # Get test cases
-    test_cases = get_test_cases(category=args.category, quick=args.quick)
-    
-    if not test_cases:
-        print(f"[ERROR] No test cases found for category: {args.category}")
-        sys.exit(1)
-    
-    print(f"\n🚀 Starting Stripe RAG Agent Evaluation")
-    print(f"   Test cases: {len(test_cases)}")
-    if args.category:
-        print(f"   Category filter: {args.category}")
-    
-    # Run evaluation
+    # Initialize runner
     runner = EvaluationRunner(api_key=args.api_key)
+    
+    # Get test cases
+    test_cases = get_test_cases(quick=args.quick)
+    
+    mode = "quick" if args.quick else "all"
+    print(f"\n🚀 Starting Stripe RAG Agent Evaluation")
+    print(f"   Mode: {mode} ({len(test_cases)} test cases)")
+    print(f"   Ragas: {'disabled' if args.skip_ragas else 'enabled'}")
+    
+    # Run evaluation (runner already initialized above)
     results = runner.run_evaluation(test_cases)
     
     # Run Ragas quality evaluation

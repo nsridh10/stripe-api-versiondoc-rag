@@ -1,5 +1,5 @@
 # src/test files/export_db_to_json.py
-"""
+r"""
 Export ChromaDB contents to JSON for enrichment.
 
 This script exports all chunks from the ChromaDB vector store to a JSON file

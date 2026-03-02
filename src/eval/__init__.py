@@ -6,14 +6,12 @@ This module provides tools for evaluating the RAG agent's performance and qualit
 
 Components:
     - eval_llm.py: Main evaluation runner
-    - test_cases.py: Test case definitions
+    - test_cases.py: Test case definitions (5 test cases)
 
 Usage:
-    # Run from project root
-    python -m src.eval.eval_llm
-    
-    # Or import programmatically
-    from src.eval import EvaluationRunner, get_test_cases
+    python -m src.eval.eval_llm              # All 5 tests + Ragas
+    python -m src.eval.eval_llm --quick      # 1 test + Ragas
+    python -m src.eval.eval_llm --skip-ragas # 5 tests, no Ragas
 """
 
 from src.eval.eval_llm import EvaluationRunner, run_ragas_evaluation, generate_report

@@ -1,5 +1,5 @@
 # src/test files/reingest_enriched.py
-"""
+r"""
 Re-ingestion script for enriched documentation data.
 
 This script takes the enriched JSON data (with summaries, keywords, and
