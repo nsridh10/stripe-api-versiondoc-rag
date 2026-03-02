@@ -10,6 +10,8 @@ A full-stack Retrieval-Augmented Generation system that lets users query Stripe'
                         execution_trace                                        scores
 ```
 
+**Live demo**: [http://18.116.13.255](http://18.116.13.255) (AWS EC2)
+
 **Supported API classes**: Accounts, Customers, Payment Intents, Subscriptions, Refunds, Products, Prices, Transfers  
 **Supported versions**: `basil` (older) and `clover` (latest) — Stripe's codename-based versioning  
 **LLM providers**: Groq, Grok (xAI), Google Gemini, OpenAI — bring-your-own-key, configured from UI
@@ -25,8 +27,9 @@ A full-stack Retrieval-Augmented Generation system that lets users query Stripe'
 5. [Evaluation Results](#5-evaluation-results)
 6. [FastAPI Routes & Session Management](#6-fastapi-routes--session-management)
 7. [Source Documents & Execution Trace](#7-source-documents--execution-trace)
-8. [Deployment](#8-deployment)
-9. [Project Structure](#9-project-structure)
+8. [Local Development Setup](#8-local-development-setup)
+9. [Deployment](#9-deployment)
+10. [Project Structure](#10-project-structure)
 
 ---
 
@@ -348,7 +351,56 @@ The `ExecutionTrace` is included in every `POST /query` response, providing full
 
 ---
 
-## 8. Deployment
+## 8. Local Development Setup
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+ (for frontend)
+
+### Backend
+
+```bash
+# Clone the repo
+git clone https://github.com/nsridh10/stripe-api-versiondoc-rag.git
+cd stripe-api-versiondoc-rag
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Copy and configure config.yaml
+# Set memory_backend, embedding model path, and other settings as needed
+cp config.yaml.example config.yaml  # or edit config.yaml directly
+
+# Ingest documentation into ChromaDB (first time only)
+python -m src.ingestion
+
+# Start the FastAPI server
+uvicorn src.main:app --reload --port 8000
+```
+
+The API will be available at `http://localhost:8000`.
+
+### Running Evaluation
+
+```bash
+# Install evaluation dependencies
+pip install -r requirements-eval.txt
+
+# Set your Groq API key (used as the LLM judge for RAGAS scoring)
+export GROQ_API_KEY="your-groq-api-key"
+
+# Run full evaluation
+python -m src.eval.eval_llm
+```
+
+---
+
+## 9. Deployment
 
 > See: [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full step-by-step AWS EC2 guide.
 > The system deploys via **Docker Compose** with two containers:
@@ -367,7 +419,7 @@ Key deployment decisions:
 
 ---
 
-## 9. Project Structure
+## 10. Project Structure
 
 ```
 stripe-rag-agent/
