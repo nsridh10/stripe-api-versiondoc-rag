@@ -22,6 +22,7 @@ logs/
 
 # Database
 data/chroma_db/
+src/data/chroma_db/
 data/*.json
 
 # Config with sensitive data
