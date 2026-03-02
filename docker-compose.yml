@@ -52,7 +52,12 @@ services:
     container_name: stripe-rag-frontend
     restart: unless-stopped
     ports:
-      - "80:80" # public HTTP – only port 80 needs to be open in SG
+      - "80:80" # HTTP redirect → HTTPS
+      - "443:443" # HTTPS
+    volumes:
+      # Mount Let's Encrypt certs from EC2 host (read-only)
+      # Make sure certbot has run: sudo certbot certonly --standalone -d yourdomain.com
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       backend:
         condition: service_healthy
