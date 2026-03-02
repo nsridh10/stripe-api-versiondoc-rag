@@ -19,10 +19,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # ---------------------------------------------------------------------------
-# Python dependencies (install before copying src to leverage layer cache)
+# Python dependencies
+# Step 1: install CPU-only PyTorch FIRST (~700 MB vs ~2 GB for the default
+#         CUDA build that sentence-transformers would otherwise pull in).
+# Step 2: install the rest of requirements.txt (sentence-transformers will
+#         detect torch is already present and skip re-downloading it).
 # ---------------------------------------------------------------------------
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+        torch==2.5.1+cpu \
+        --extra-index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
 
 # ---------------------------------------------------------------------------
 # Pre-download the HuggingFace embedding model at build time so the

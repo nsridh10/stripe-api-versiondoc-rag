@@ -1,0 +1,6 @@
+# Evaluation-only dependencies – NOT installed in Docker.
+# Install locally with:  pip install -r requirements-eval.txt
+-r requirements.txt
+ragas>=0.2.0
+datasets>=3.0.0
+pandas>=2.0.0
