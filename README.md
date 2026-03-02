@@ -377,7 +377,11 @@ pip install -r requirements.txt
 cp config.yaml.example config.yaml  # or edit config.yaml directly
 
 # Ingest documentation into ChromaDB (first time only)
+# Option 1: Basic ingestion (auto-generates metadata using LLM if configured in config.yaml)
 python -m src.ingestion
+
+# Option 2: Ingest with pre-enriched metadata (faster, recommended for testing)
+python "src/test files/reingest_enriched.py"
 
 # Start the FastAPI server
 uvicorn src.main:app --reload --port 8000

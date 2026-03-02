@@ -45,37 +45,36 @@ curl https://api.stripe.com/v1/customers \
   }
 }
 ```
-This will create a new customer with the specified details and return the customer object.",basic_query,8.67,4337,3861,476,1,0.9230769230769231,1.0,0.8020280372766896
+This will create a new customer with the specified details and return the customer object.",basic_query,8.72,4333,3860,473,1,1.0,1.0,0.8759196628924532
 What are the key differences between the Customer API in basil and clover versions? Please explain the changes in paragraph form.,"The key differences between the Customer API in basil and clover versions lie in the fields and parameters used for creating, updating, and retrieving customers. 
 
-In the basil version, the Customer object includes fields such as `full_name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `currency`, `delinquent`, `created`, `livemode`, `default_source`, and `invoice_settings.default_source`. The create customer endpoint accepts parameters like `full_name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `source`, and `invoice_settings.default_source`.
+In the basil version, the Customer object includes fields such as `full_name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `currency`, `delinquent`, `created`, `livemode`, `default_source`, and `invoice_settings.default_source`. The create customer endpoint in basil accepts parameters like `full_name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `source`, and `invoice_settings.default_source`.
 
-In contrast, the clover version introduces changes to the Customer object and its endpoints. The Customer object in clover includes fields like `name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `currency`, `delinquent`, `created`, `livemode`, `default_source`, and `invoice_settings.default_payment_method`. The create customer endpoint in clover accepts parameters such as `name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `payment_method`, and `invoice_settings.default_payment_method`.
+In contrast, the clover version of the Customer object includes fields like `name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `currency`, `delinquent`, `created`, `livemode`, `default_source`, and `invoice_settings.default_payment_method`. The create customer endpoint in clover accepts parameters such as `name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `payment_method`, and `invoice_settings.default_payment_method`.
 
-One notable difference is the replacement of `full_name` with `name` in the clover version. Additionally, `invoice_settings.default_source` in basil is replaced with `invoice_settings.default_payment_method` in clover, reflecting a shift towards using PaymentMethod IDs for invoices and subscriptions. 
+One notable difference is the replacement of `full_name` with `name` and `invoice_settings.default_source` with `invoice_settings.default_payment_method` in the clover version. This change reflects a shift towards using PaymentMethod IDs for invoices and subscriptions instead of source IDs. Additionally, the `payment_method` parameter is introduced in the clover create customer endpoint to attach a PaymentMethod to the customer.
 
-These changes indicate that the clover version has been updated to align with newer Stripe API standards, particularly in how payment methods are handled and referenced within customer objects and invoice settings. Overall, while the basil and clover versions share many similarities, the clover version incorporates updates that reflect Stripe's evolving API and payment processing capabilities.",comparison,2.87,6563,6124,439,2,1.0,0.9814326878896251,0.40943254959961195
+These changes indicate that the clover version has been updated to accommodate the use of PaymentMethods, which provide more flexibility and control over payment sources. Overall, while the basil and clover versions share many similarities, the differences in fields and parameters highlight the evolution of the Stripe Customer API towards more robust and flexible payment management capabilities.",comparison,2.99,6575,6124,451,2,0.8,0.9814326878896251,0.5109051516966955
 What is the weather like in San Francisco today?,"I'm a Stripe API documentation assistant. I can help you with questions about:
 - API classes: ACCOUNTS, CUSTOMERS, PAYMENT_INTENTS, SUBSCRIPTIONS, REFUNDS, PRODUCTS, PRICES, TRANSFERS
 - API versions: basil, clover
 
-Please ask a question related to Stripe API documentation.",junk_query,0.4,0,0,0,0,0.0,0.37570480899992187,0.7886478090208668
-"Give me complete documentation about all Stripe APIs - Customers, Payment Intents, Subscriptions, Refunds, Products, Prices, Accounts, and Transfers with all their endpoints and parameters.","I'm a Stripe API documentation assistant. I can help you with questions about:
-- API classes: ACCOUNTS, CUSTOMERS, PAYMENT_INTENTS, SUBSCRIPTIONS, REFUNDS, PRODUCTS, PRICES, TRANSFERS
-- API versions: basil, clover
+Please ask a question related to Stripe API documentation.",junk_query,0.76,0,0,0,0,0.0,0.37304945919924676,1.0
+"What are the required parameters for creating a Customer, a PaymentIntent, a Subscription, and a Transfer? List them for both basil and clover versions.","Your query requires **8 lookups** but the system can process a maximum of **6** per request (with 6 remaining in this session). Could you break your question into smaller parts? For example:
+  - CUSTOMERS, PAYMENT_INTENTS, SUBSCRIPTIONS, TRANSFERS
 
-Please ask a question related to Stripe API documentation.",budget_exhaustion,0.51,0,0,0,0,0.0,0.9007722222527971,0.7274571608749492
-How do I create a refund in the basil version of the Stripe API?,"## Creating a Refund in the Basil Version of the Stripe API
+You can ask about each group in a separate message and I'll cover them all.",multi_api,1.28,0,0,0,0,0.0,0.0,0.6760287496296323
+How do I create a refund in the basil version of the Stripe API?,"### Creating a Refund in the Basil Version of the Stripe API
 To create a refund in the basil version of the Stripe API, you can use the **POST /api/v1.0/refunds** endpoint. This endpoint allows you to refund a previously created charge that isn’t refunded yet.
 
-### Parameters for Creating a Refund
+#### Parameters for Creating a Refund
 The following parameters can be included when creating a refund:
 * **charge_id** (string, optional): The identifier of the charge to refund.
 * **transaction_id** (string, optional): The identifier of the PaymentIntent to refund.
 * **refund_amount_cents** (integer, optional): A positive integer representing how much of this charge to refund.
 * **refund_reason** (string, optional): String indicating the reason for the refund.
 
-### Example Response
+#### Example Response
 After creating a refund, you can expect a response similar to the following:
 ```json
 {
@@ -91,7 +90,4 @@ After creating a refund, you can expect a response similar to the following:
   }
 }
 ```
-This response includes the refund ID, object type, refund amount, charge ID, transaction ID, and refund status.
-
-### Additional Endpoints
-In addition to creating a refund, the basil Refunds API provides endpoints for retrieving a refund (**GET /api/v1.0/refunds/:id**) and listing all refunds (**GET /api/v1.0/refunds**). These endpoints can be used to retrieve information about specific refunds or to list all refunds, respectively.",specific_version,2.31,2535,2142,393,1,1.0,0.9810471194149161,0.45442674825452084
+This response includes the refund ID, object type, refund amount, charge ID, transaction ID (if applicable), and the refund status.",specific_version,2.25,2468,2142,326,1,1.0,0.9999999999999996,0.5210389780243257
