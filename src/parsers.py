@@ -82,10 +82,11 @@ class MarkdownParser(BaseParser):
                 splitter = RecursiveCharacterTextSplitter(
                     chunk_size=self.large_chunk_size,
                     chunk_overlap=self.large_chunk_overlap,
-                    separators=["\n## ", "\n### ", "\n\n", "\n", " "]
+                    separators=["\n# ", "\n## ", "\n### ", "\n\n", "\n", " "]
                 )
                 texts = splitter.split_text(content)
-                chunks = [Document(page_content=t, metadata=base_metadata.copy()) for t in texts]
+                prefix = f"[{base_metadata['api_class']} API — {base_metadata['version']}]\n\n"
+                chunks = [Document(page_content=prefix + t, metadata=base_metadata.copy()) for t in texts]
 
             return self.finalize_chunks(chunks)
         except Exception as e:
@@ -111,10 +112,11 @@ class RSTParser(BaseParser):
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.large_chunk_size,
             chunk_overlap=self.large_chunk_overlap,
-            separators=["\n\n..", "\n\n", "\n", " "]
+            separators=["\n\n----", "\n\n====", "\n\n..", "\n\n", "\n", " "]
         )
         texts = splitter.split_text(content)
-        return [Document(page_content=t, metadata=base_metadata.copy()) for t in texts]
+        prefix = f"[{base_metadata['api_class']} API — {base_metadata['version']}]\n\n"
+        return [Document(page_content=prefix + t, metadata=base_metadata.copy()) for t in texts]
 
     def _parse_granular_rst(self, file_path: str, base_metadata: dict) -> List[Document]:
         with open(file_path, "r", encoding="utf-8") as f:

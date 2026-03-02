@@ -6,6 +6,7 @@ from src.parsers import ParserFactory
 from src.config import config
 
 def ingest_documents():
+    """Reads configuration, dynamically parses files, and loads them into ChromaDB."""
     print("🧹 Cleaning up old vector data...")
     persist_dir = config["services"]["vector_db"]["persist_directory"]
     
@@ -17,7 +18,7 @@ def ingest_documents():
         print("✅ Collection cleared.")
     except Exception:
         print("ℹ️ No existing collection found to clear. Starting fresh.")
-    """Reads configuration, dynamically parses files, and loads them into ChromaDB."""
+
     print("Starting ingestion process...")
     vector_store = get_vector_store()
     file_mappings = get_file_mappings()
