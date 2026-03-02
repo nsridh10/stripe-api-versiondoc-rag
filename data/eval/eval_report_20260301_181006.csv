@@ -1,0 +1,96 @@
+question,answer,category,latency_seconds,total_tokens,input_tokens,output_tokens,tool_calls,faithfulness,answer_relevancy,answer_correctness
+How do I create a customer in Stripe?,"## Creating a Customer in Stripe
+To create a customer in Stripe, you can use the `/v1/customers` endpoint with a `POST` request. The parameters you can pass include:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `name` | string | optional | Full name or business name (max 256 chars) |
+| `email` | string | optional | Email address (max 512 chars) |
+| `phone` | string | optional | Phone number (max 20 chars) |
+| `description` | string | optional | Arbitrary string for display/notes |
+| `metadata` | object | optional | Key-value pairs for storing extra info |
+| `address` | object | optional | Address: city, country, line1, line2, postal_code, state |
+| `balance` | integer | optional | Starting balance in cents |
+| `payment_method` | string | optional | ID of a PaymentMethod to attach |
+| `invoice_settings.default_payment_method` | string | optional | Default PaymentMethod ID for invoices/subscriptions |
+
+### Example Request
+```curl
+curl https://api.stripe.com/v1/customers \
+  -u ""<<YOUR_SECRET_KEY>>"" \
+  -d name=""Jenny Rosen"" \
+  --data-urlencode email=""jennyrosen@example.com""
+```
+
+### Example Response
+```json
+{
+  ""id"": ""cus_NffrFeUfNV2Hib"",
+  ""object"": ""customer"",
+  ""name"": ""Jenny Rosen"",
+  ""email"": ""jennyrosen@example.com"",
+  ""phone"": null,
+  ""description"": null,
+  ""metadata"": {},
+  ""address"": null,
+  ""balance"": 0,
+  ""created"": 1680893993,
+  ""livemode"": false,
+  ""default_source"": null,
+  ""invoice_settings"": {
+    ""default_payment_method"": null,
+    ""custom_fields"": null,
+    ""footer"": null,
+    ""rendering_options"": null
+  }
+}
+```
+This will create a new customer with the specified details and return the customer object.",basic_query,8.18,4333,3860,473,1,1.0,1.0,0.8163958533686437
+What are the key differences between the Customer API in basil and clover versions? Please explain the changes in paragraph form.,"The key differences between the Customer API in basil and clover versions lie in the fields and parameters used for creating, updating, and retrieving customers. 
+
+In the basil version, the Customer object includes fields such as `full_name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `currency`, `delinquent`, `created`, `livemode`, `default_source`, and `invoice_settings.default_source`. The create customer endpoint accepts parameters like `full_name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `source`, and `invoice_settings.default_source`.
+
+In contrast, the clover version introduces changes to the Customer object and its endpoints. The Customer object in clover includes fields like `name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `currency`, `delinquent`, `created`, `livemode`, `default_source`, and `invoice_settings.default_payment_method`. The create customer endpoint in clover accepts parameters such as `name`, `email`, `phone`, `description`, `metadata`, `address`, `balance`, `payment_method`, and `invoice_settings.default_payment_method`.
+
+One notable difference is the replacement of `full_name` with `name` in the clover version. Additionally, the `default_source` field has been updated to `default_payment_method` in the `invoice_settings` object, reflecting a shift towards using PaymentMethod IDs for subscriptions and invoices. 
+
+These changes indicate that the clover version has been updated to align with newer Stripe API standards, which emphasize the use of PaymentMethod objects for managing customer payment sources. Overall, while the basil and clover versions share many similarities, the clover version incorporates updates that reflect Stripe's evolving API and payment processing capabilities.",comparison,3.14,6562,6124,438,2,1.0,0.9814326878896251,0.5536589794085267
+What is the weather like in San Francisco today?,"I'm a Stripe API documentation assistant. I can help you with questions about:
+- API classes: ACCOUNTS, CUSTOMERS, PAYMENT_INTENTS, SUBSCRIPTIONS, REFUNDS, PRODUCTS, PRICES, TRANSFERS
+- API versions: basil, clover
+
+Please ask a question related to Stripe API documentation.",junk_query,0.39,0,0,0,0,0.0,0.37570480899992187,1.0
+"What are the required parameters for creating a Customer, a PaymentIntent, a Subscription, and a Transfer? List them for both basil and clover versions.","Your query requires **8 lookups** but the system can process a maximum of **6** per request (with 6 remaining in this session). Could you break your question into smaller parts? For example:
+  - CUSTOMERS, PAYMENT_INTENTS, SUBSCRIPTIONS, TRANSFERS
+
+You can ask about each group in a separate message and I'll cover them all.",multi_api,1.16,0,0,0,0,0.0,0.0,0.6760287496296323
+How do I create a refund in the basil version of the Stripe API?,"## Creating a Refund in the Basil Version of the Stripe API
+To create a refund in the basil version of the Stripe API, you can use the **POST /api/v1.0/refunds** endpoint. This endpoint allows you to refund a previously created charge that isn’t refunded yet.
+
+### Parameters for Creating a Refund
+The following parameters can be included when creating a refund:
+* **charge_id** (string, optional): The identifier of the charge to refund.
+* **transaction_id** (string, optional): The identifier of the PaymentIntent to refund.
+* **refund_amount_cents** (integer, optional): A positive integer representing how much of this charge to refund.
+* **refund_reason** (string, optional): String indicating the reason for the refund.
+
+### Example Response
+After creating a refund, you can expect a response similar to the following:
+```json
+{
+  ""status"": ""success"",
+  ""api_version"": ""1.0"",
+  ""data"": {
+    ""id"": ""re_12345"",
+    ""object"": ""refund"",
+    ""refund_amount_cents"": 1000,
+    ""charge_id"": ""ch_9876"",
+    ""transaction_id"": null,
+    ""refund_status"": ""succeeded""
+  }
+}
+```
+This response includes the refund ID, object type, refund amount, charge ID, transaction ID (if applicable), and the refund status.
+
+### Additional Endpoints
+In addition to creating a refund, the basil Refunds API provides endpoints for retrieving a refund (**GET /api/v1.0/refunds/:id**) and listing all refunds (**GET /api/v1.0/refunds**). These endpoints can be used to retrieve specific refund information or to list refunds based on certain criteria, such as charge ID or transaction ID.",specific_version,2.43,2547,2142,405,1,1.0,0.9810471194149161,0.4653042174856624

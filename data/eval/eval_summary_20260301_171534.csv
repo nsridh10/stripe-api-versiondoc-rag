@@ -1,0 +1,2 @@
+timestamp,total_cases,avg_latency,avg_tokens,avg_tool_calls,avg_faithfulness,avg_relevancy,avg_correctness
+20260301_171534,5,2.95,2687.0,0.8,0.5846153846153846,0.847791367711452,0.6363984610053277
